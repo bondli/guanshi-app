@@ -19,11 +19,11 @@ export interface FileConfig {
 }
 
 const defaults: FileConfig = {
-  port: 8787,
+  port: 7777,
   host: '0.0.0.0',
   timezone: 'Asia/Shanghai',
   dataDir: path.join(configDir, 'data'),
-  publicBaseUrl: 'http://localhost:8787',
+  publicBaseUrl: 'http://localhost:7777',
   llmRateLimitPerMinute: 20,
 }
 

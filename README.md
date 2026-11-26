@@ -47,7 +47,7 @@ guanshi-app/
 ```bash
 cd guanshi-server
 npm install
-npm run dev          # http://localhost:8787
+npm run dev          # http://localhost:7777
 ```
 
 首次启动自动创建 `~/.guanshi-app/`（配置、数据库、RSA 密钥）。
@@ -56,10 +56,10 @@ npm run dev          # http://localhost:8787
 
 ```bash
 emulator -avd <你的 AVD>
-adb reverse tcp:8787 tcp:8787
+adb reverse tcp:7777 tcp:7777
 ```
 
-客户端默认连 `http://10.0.2.2:8787/api`，`adb reverse` 后也可用 `localhost`。
+客户端默认连 `http://10.0.2.2:7777/api`，`adb reverse` 后也可用 `localhost`。
 
 ### 3. 运行客户端
 
@@ -70,7 +70,7 @@ npm run android      # 构建并安装到已连接的设备/模拟器
 npx expo start       # 只起 Metro
 ```
 
-真机调试：在「我的 → 云端模型 → 服务端地址」填 `http://<电脑局域网IP>:8787/api`。
+真机调试：在「我的 → 云端模型 → 服务端地址」填 `http://<电脑局域网IP>:7777/api`。
 
 ### 4. 打安装包
 

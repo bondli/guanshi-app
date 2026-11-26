@@ -12,7 +12,7 @@ import type {
 } from './types'
 
 export const DEFAULT_API_BASE =
-  Platform.OS === 'android' ? 'http://10.0.2.2:8787/api' : 'http://localhost:8787/api'
+  Platform.OS === 'android' ? 'http://10.0.2.2:7777/api' : 'http://localhost:7777/api'
 
 let base = DEFAULT_API_BASE
 let token: string | null = null

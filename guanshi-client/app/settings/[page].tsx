@@ -570,7 +570,7 @@ function ModelPage() {
       <Card>
         <Muted>Agent 常驻云端，负责理解、记忆、定时与推送。手机端只做采集与展示。</Muted>
         <Text style={{ marginTop: 12, marginBottom: 6, fontSize: 10.5, color: p.muted }}>服务端地址</Text>
-        <FormInput value={base} onChangeText={setBase} placeholder="http://192.168.1.10:8787/api" />
+        <FormInput value={base} onChangeText={setBase} placeholder="http://192.168.1.10:7777/api" />
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
           <Button style={{ flex: 1 }} onPress={() => void save()}>
             保存
@@ -645,7 +645,7 @@ function ModelPage() {
       <SectionTitle>说明</SectionTitle>
       <Card>
         <Muted>
-          真机调试时，把服务端地址换成电脑的局域网 IP，例如 http://192.168.1.10:8787/api。Android 模拟器默认用 10.0.2.2。
+          真机调试时，把服务端地址换成电脑的局域网 IP，例如 http://192.168.1.10:7777/api。Android 模拟器默认用 10.0.2.2。
         </Muted>
       </Card>
     </>
