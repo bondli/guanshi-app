@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管事 · 推送从服务端到客户端</title>
+<style>
+  :root {
+    --paper: #f4f2ee;
+    --paper-2: #ffffff;
+    --ink: #18181b;
+    --muted: #6b6b73;
+    --soft: #8a8a92;
+    --rule: rgba(24, 24, 27, 0.12);
+    --accent: #c9522a;
+    --link: #2e5aa8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "PingFang SC", -apple-system, "Helvetica Neue", "Noto Sans SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1060px; margin: 0 auto; padding: 56px 32px 72px; }
+  .eyebrow {
+    margin: 0 0 10px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1 {
+    margin: 0;
+    font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
+    font-size: 40px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .lede { margin: 12px 0 0; max-width: 720px; font-size: 14px; line-height: 1.7; color: var(--muted); }
+  .frame {
+    margin-top: 28px;
+    padding: 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  svg { display: block; min-width: 960px; width: 100%; height: auto; }
+  .cards { display: grid; grid-template-columns: 1.1fr 1fr 0.95fr; gap: 16px; margin-top: 26px; }
+  .card {
+    padding: 16px 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+  }
+  .card h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  .card p { margin: 0; font-size: 12.5px; line-height: 1.75; color: var(--muted); }
+  .card code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+  }
+  .note {
+    margin-top: 18px;
+    font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    color: var(--soft);
+  }
+  text { font-family: "PingFang SC", -apple-system, sans-serif; }
+  .node-name { font-size: 14px; font-weight: 600; fill: var(--ink); }
+  .node-sub { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10.5px; fill: var(--muted); }
+  .lane { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.14em; fill: var(--soft); }
+  .arrow-label {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    fill: var(--muted);
+  }
+  .legend { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10px; fill: var(--muted); }
+  .anno { font-family: "Songti SC", "Noto Serif SC", Georgia, serif; font-style: italic; font-size: 12px; fill: var(--soft); }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Guanshi · Push</p>
+  <h1>一条提醒，怎么从云端落到你手机上</h1>
+  <p class="lede">
+    提醒不是 App 自己在跑，而是云端到点生成一条消息、同时写一条待发推送。
+    投递有两条路：App 在前台时走 WebSocket 长连接即时下发，其余情况走厂商通道（待接）。
+    两条路共用同一个 <code>messageId</code>，点通知回到助手里的同一条消息并高亮。
+  </p>
+
+  <div class="frame">
+    <svg viewBox="0 0 960 720" role="img" aria-labelledby="push-title push-desc">
+      <title id="push-title">服务端推送生产到客户端接收处理的两条链路</title>
+      <desc id="push-desc">定时器触发后云端生成消息并写入 outbox，addOutbox 通过 WebSocket 给前台在线客户端即时下发，dispatchOutbox 负责厂商通道路径；客户端收到后弹本地通知并刷新，点击通知按 messageId 进入助手高亮该条消息。</desc>
+
+      <defs>
+        <marker id="push-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6b6b73"></path>
+        </marker>
+        <marker id="push-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#c9522a"></path>
+        </marker>
+        <marker id="push-arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2e5aa8"></path>
+        </marker>
+      </defs>
+
+      <text class="lane" x="48" y="64">触发源 · 服务端定时</text>
+      <text class="lane" x="340" y="64">云端 · 消息与投递</text>
+      <text class="lane" x="700" y="64">设备 · 通知与跳转</text>
+
+      <!-- connectors first -->
+      <path d="M258 300 L296 300 Q304 300 304 292 L304 124 Q304 116 312 116 L336 116" fill="none" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></path>
+      <line x1="490" y1="148" x2="490" y2="172" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></line>
+      <line x1="490" y1="236" x2="490" y2="260" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></line>
+      <path d="M340 204 L326 204 Q318 204 318 212 L318 372 Q318 380 326 380 L336 380" fill="none" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></path>
+      <line x1="640" y1="292" x2="700" y2="292" stroke="#2e5aa8" stroke-width="1.4" marker-end="url(#push-arrow-blue)"></line>
+      <line x1="640" y1="380" x2="700" y2="380" stroke="#6b6b73" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#push-arrow)"></line>
+      <path d="M910 292 L932 292 Q940 292 940 300 L940 460 Q940 468 932 468 L910 468" fill="none" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></path>
+      <line x1="805" y1="412" x2="805" y2="436" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></line>
+      <line x1="805" y1="500" x2="805" y2="524" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#push-arrow)"></line>
+
+      <!-- arrow labels -->
+      <rect x="649" y="272" width="42" height="14" fill="#ffffff"></rect>
+      <text class="arrow-label" x="670" y="283" text-anchor="middle">长连接</text>
+      <rect x="651" y="360" width="38" height="14" fill="#ffffff"></rect>
+      <text class="arrow-label" x="670" y="371" text-anchor="middle">待接</text>
+
+      <!-- trigger -->
+      <rect x="48" y="240" width="210" height="120" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+      <text class="node-name" x="68" y="270">触发源</text>
+      <text class="node-sub" x="68" y="294">07:30 晨报</text>
+      <text class="node-sub" x="68" y="312">21:00 复盘</text>
+      <text class="node-sub" x="68" y="330">到点提醒 · timers</text>
+      <text class="node-sub" x="68" y="348">短信识别事件</text>
+
+      <!-- cloud column -->
+      <rect x="340" y="84" width="300" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+      <text class="node-name" x="360" y="112">生成消息 addMessage</text>
+      <text class="node-sub" x="360" y="131">messages 表 · 与助手对话同源</text>
+
+      <rect x="340" y="172" width="300" height="64" rx="6" fill="rgba(201,82,42,0.08)" stroke="#c9522a"></rect>
+      <text class="node-name" x="360" y="200">写 outbox</text>
+      <text class="node-sub" x="360" y="219">带 messageId · 模板生成 0 token</text>
+
+      <rect x="340" y="260" width="300" height="64" rx="6" fill="rgba(46,90,168,0.06)" stroke="#2e5aa8"></rect>
+      <text class="node-name" x="360" y="288">pushToUser()</text>
+      <text class="node-sub" x="360" y="307">addOutbox 写入后立即下发</text>
+
+      <rect x="340" y="348" width="300" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+      <text class="node-name" x="360" y="376">dispatchOutbox()</text>
+      <text class="node-sub" x="360" y="395">30s 扫描 · pending 记录</text>
+
+      <!-- device column -->
+      <rect x="700" y="260" width="210" height="64" rx="6" fill="#ffffff" stroke="#2e5aa8"></rect>
+      <text class="node-name" x="720" y="288">本地通知 + refresh</text>
+      <text class="node-sub" x="720" y="307">store 收事件 · 去重</text>
+
+      <rect x="700" y="348" width="210" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+      <text class="node-name" x="720" y="376">系统通知</text>
+      <text class="node-sub" x="720" y="395">data.messageId</text>
+
+      <rect x="700" y="436" width="210" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+      <text class="node-name" x="720" y="464">打开助手</text>
+      <text class="node-sub" x="720" y="483">refresh → /chat</text>
+
+      <rect x="700" y="524" width="210" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+      <text class="node-name" x="720" y="552">高亮该条</text>
+      <text class="node-sub" x="720" y="571">setHighlight</text>
+
+      <!-- annotations -->
+      <text class="anno" x="48" y="112">一次写入：先 messages，</text>
+      <text class="anno" x="48" y="130">再 outbox，两者同源。</text>
+      <text class="anno" x="48" y="148">免打扰只跳过投递。</text>
+      <text class="anno" x="700" y="616">两条通道共用同一个 messageId</text>
+
+      <!-- legend -->
+      <g>
+        <rect x="48" y="678" width="14" height="10" rx="2" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="legend" x="70" y="687">各环节</text>
+        <rect x="136" y="678" width="14" height="10" rx="2" fill="rgba(201,82,42,0.08)" stroke="#c9522a"></rect>
+        <text class="legend" x="158" y="687">核心：消息与推送同源</text>
+        <rect x="330" y="678" width="14" height="10" rx="2" fill="rgba(46,90,168,0.06)" stroke="#2e5aa8"></rect>
+        <text class="legend" x="352" y="687">前台即时通道（WebSocket）</text>
+        <line x1="586" y1="683" x2="618" y2="683" stroke="#6b6b73" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#push-arrow)"></line>
+        <text class="legend" x="628" y="687">厂商通道（待接）</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h2>服务端在哪</h2>
+      <p>
+        <code>services.ts</code>：<code>startScheduler()</code> 每 30 秒 tick 一次，依次处理
+        <code>timers</code>、<code>events</code>，最后调用 <code>dispatchOutbox()</code>。<br>
+        <code>repos.ts</code> 的 <code>addOutbox()</code> 写库后立即 <code>pushToUser()</code>，
+        所以在线的 App 不用等下一轮 tick，消息一生成就收到。<br>
+        三种来源共用一条链：<code>sendBriefing</code>、<code>sendReview</code>、<code>remindDuty</code>。
+      </p>
+    </div>
+    <div class="card">
+      <h2>为什么先写消息</h2>
+      <p>
+        推送和助手消息是同一份数据：先 <code>addMessage()</code> 落 <code>messages</code>，
+        再 <code>addOutbox()</code> 带上 <code>messageId</code>。<br>
+        所以点通知进去看到的，就是当时推给你的那条，不会跳到今日清单。
+        免打扰时段只丢掉投递，消息仍留在助手里。
+      </p>
+    </div>
+    <div class="card">
+      <h2>客户端怎么收</h2>
+      <p>
+        前台：<code>stream.ts</code> 用 <code>ensureStream()</code> 保持 WebSocket 长连接，
+        收到事件按 <code>messageId</code> 去重，弹本地通知并 <code>refresh()</code>。<br>
+        点击：<code>_layout.tsx</code> 注册 <code>addNotificationResponseReceivedListener</code>（热启动）和
+        <code>getLastNotificationResponseAsync</code>（冷启动），取到 <code>messageId</code> 后跳
+        <code>/chat?messageId=</code>，由 <code>setHighlight</code> 高亮气泡。<br>
+        深链 <code>guanshi://assistant?messageId=</code> 走同一套处理。
+      </p>
+    </div>
+  </div>
+
+  <p class="note">前台通道只在 App 进程活着时有效；厂商推送 SDK 尚未接入，deliver() 只写日志。设置页的「测试推送通道」用本地通知模拟同一条 messageId 路径。</p>
+</main>
+</body>
+</html>

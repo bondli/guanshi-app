@@ -1,0 +1,29 @@
+# 依赖
+node_modules/
+
+# Expo / Metro 构建产物
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+*.tsbuildinfo
+
+# 原生工程由 expo prebuild 生成，不入库；自定义原生源码在 native/android/ 下，需要提交
+/android/
+/ios/
+*.keystore
+*.jks
+local.properties
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# 日志与系统文件
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

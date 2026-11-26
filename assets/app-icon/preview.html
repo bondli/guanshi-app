@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管事 · 应用图标</title>
+<style>
+  :root {
+    --paper: #f5f2ec;
+    --card: #ffffff;
+    --ink: #18181b;
+    --muted: #71717a;
+    --border: #e6e1d8;
+    --brand: #bf4520;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1080px; margin: 0 auto; padding: 56px 32px 80px; }
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 10px 0 8px; font-size: 34px; letter-spacing: -.01em; font-weight: 600; }
+  .lead { margin: 0 0 36px; color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 62ch; }
+  h2 { margin: 48px 0 16px; font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+  h2 span { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .14em; margin-left: 10px; font-weight: 400; }
+
+  .hero {
+    display: flex; align-items: center; gap: 32px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+    padding: 28px;
+  }
+  .hero img { width: 176px; height: 176px; border-radius: 38px; display: block; }
+  .hero .meta p { margin: 0 0 6px; font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 999px; background: #fbeee7; color: var(--brand); font-size: 11px; font-weight: 600; margin-bottom: 10px; }
+
+  .sizes { display: flex; align-items: flex-end; gap: 22px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; flex-wrap: wrap; }
+  .sizes.dark { background: #141416; border-color: #26262a; }
+  .size { text-align: center; }
+  .size img { display: block; margin: 0 auto 8px; }
+  .size span { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .08em; }
+  .sizes.dark .size span { color: #71717a; }
+
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; flex: 1 1 200px; text-align: center; }
+  .box.dark { background: #141416; border-color: #26262a; }
+  .box p { margin: 10px 0 0; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .08em; }
+
+  .adaptive { position: relative; width: 132px; height: 132px; margin: 0 auto; overflow: hidden; }
+  .adaptive img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .adaptive.circle { border-radius: 50%; }
+  .adaptive.squircle { border-radius: 30%; }
+  .adaptive.safe::after {
+    content: ""; position: absolute; left: 17%; top: 17%; width: 66%; height: 66%;
+    border: 1px dashed rgba(255,255,255,.55); border-radius: 50%;
+  }
+
+  .noti-wrap { background: #141416; border-radius: 14px; padding: 26px; text-align: center; }
+  .noti-wrap img { width: 72px; height: 72px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; font-size: 12.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  th { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-family: var(--mono); font-size: 11.5px; color: var(--brand); }
+  td:last-child { color: var(--muted); }
+
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 10.5px; color: #a1a1aa; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="eyebrow">App Icon · 定稿</p>
+  <h1>管事 · 应用图标</h1>
+  <p class="lead">朱砂渐变底 + 暖白卡片 + 对勾。卡片代表「一件事」，对勾代表「办妥」；大色块与粗线保证在 48dp 下依然清晰。</p>
+
+  <div class="hero">
+    <img src="play-store-512.png" alt="管事图标">
+    <div class="meta">
+      <span class="tag">定稿</span>
+      <p>朱砂渐变 · 暖白圆角卡片 · 朱砂对勾</p>
+      <p>主色 #C9522A → #942C0F，卡片 #FFFCF8，对勾 #962E11</p>
+      <p>Play Store 512×512 · 自适应图标 108dp（内容在 62% 安全区内）</p>
+    </div>
+  </div>
+
+  <h2>启动器尺寸 <span>LIGHT</span></h2>
+  <div class="sizes">
+    <div class="size"><img src="mipmap-xxxhdpi/ic_launcher.png" width="192" height="192" alt="192"><span>192 · xxxhdpi</span></div>
+    <div class="size"><img src="mipmap-xxhdpi/ic_launcher.png" width="144" height="144" alt="144"><span>144 · xxhdpi</span></div>
+    <div class="size"><img src="mipmap-xhdpi/ic_launcher.png" width="96" height="96" alt="96"><span>96 · xhdpi</span></div>
+    <div class="size"><img src="mipmap-hdpi/ic_launcher.png" width="72" height="72" alt="72"><span>72 · hdpi</span></div>
+    <div class="size"><img src="mipmap-mdpi/ic_launcher.png" width="48" height="48" alt="48"><span>48 · mdpi</span></div>
+  </div>
+
+  <h2>深色桌面上 <span>DARK</span></h2>
+  <div class="sizes dark">
+    <div class="size"><img src="mipmap-xxxhdpi/ic_launcher.png" width="192" height="192" alt="192"><span>192</span></div>
+    <div class="size"><img src="mipmap-xxhdpi/ic_launcher.png" width="144" height="144" alt="144"><span>144</span></div>
+    <div class="size"><img src="mipmap-xhdpi/ic_launcher.png" width="96" height="96" alt="96"><span>96</span></div>
+    <div class="size"><img src="mipmap-hdpi/ic_launcher.png" width="72" height="72" alt="72"><span>72</span></div>
+    <div class="size"><img src="mipmap-mdpi/ic_launcher.png" width="48" height="48" alt="48"><span>48</span></div>
+  </div>
+
+  <h2>圆形与自适应 <span>ADAPTIVE</span></h2>
+  <div class="row">
+    <div class="box">
+      <img src="mipmap-xxxhdpi/ic_launcher_round.png" width="132" height="132" alt="圆形图标" style="border-radius:50%">
+      <p>IC_LAUNCHER_ROUND</p>
+    </div>
+    <div class="box dark">
+      <div class="adaptive circle">
+        <img src="adaptive/ic_launcher_background-432.png" alt="">
+        <img src="adaptive/ic_launcher_foreground-432.png" alt="">
+      </div>
+      <p>圆形遮罩 · 前景 + 背景</p>
+    </div>
+    <div class="box dark">
+      <div class="adaptive squircle">
+        <img src="adaptive/ic_launcher_background-432.png" alt="">
+        <img src="adaptive/ic_launcher_foreground-432.png" alt="">
+      </div>
+      <p>SQUIRCLE 遮罩</p>
+    </div>
+    <div class="box dark">
+      <div class="adaptive circle safe">
+        <img src="adaptive/ic_launcher_background-432.png" alt="">
+        <img src="adaptive/ic_launcher_foreground-432.png" alt="">
+      </div>
+      <p>安全区 66%</p>
+    </div>
+  </div>
+
+  <h2>通知栏图标 <span>MONOCHROME</span></h2>
+  <div class="noti-wrap">
+    <img src="notification/ic_notification-96.png" alt="通知栏图标">
+  </div>
+
+  <h2>文件与落位 <span>FILES</span></h2>
+  <table>
+    <thead><tr><th>文件</th><th>尺寸</th><th>放到 Android 项目</th></tr></thead>
+    <tbody>
+      <tr><td>play-store-512.png</td><td>512×512</td><td>上架素材（Play / 应用市场）</td></tr>
+      <tr><td>mipmap-mdpi/ic_launcher.png</td><td>48×48</td><td>android/app/src/main/res/mipmap-mdpi</td></tr>
+      <tr><td>mipmap-hdpi/ic_launcher.png</td><td>72×72</td><td>…/mipmap-hdpi</td></tr>
+      <tr><td>mipmap-xhdpi/ic_launcher.png</td><td>96×96</td><td>…/mipmap-xhdpi</td></tr>
+      <tr><td>mipmap-xxhdpi/ic_launcher.png</td><td>144×144</td><td>…/mipmap-xxhdpi</td></tr>
+      <tr><td>mipmap-xxxhdpi/ic_launcher.png</td><td>192×192</td><td>…/mipmap-xxxhdpi</td></tr>
+      <tr><td>ic_launcher_round.png</td><td>48–192</td><td>各 mipmap 目录同名文件</td></tr>
+      <tr><td>adaptive/ic_launcher_background-432.png</td><td>432×432</td><td>mipmap-anydpi-v26 的背景层</td></tr>
+      <tr><td>adaptive/ic_launcher_foreground-432.png</td><td>432×432</td><td>mipmap-anydpi-v26 的前景层</td></tr>
+      <tr><td>notification/ic_notification-96.png</td><td>96×96</td><td>drawable-xxxhdpi（通知小图标）</td></tr>
+      <tr><td>guanshi-icon-1024.png</td><td>1024×1024</td><td>母版，后续改尺寸用</td></tr>
+    </tbody>
+  </table>
+
+  <footer>由 generate.py 生成 · 改色或改字后重新执行即可覆盖全部尺寸</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管事 · userId 生成与请求鉴权</title>
+<style>
+  :root {
+    --paper: #f4f2ee;
+    --paper-2: #ffffff;
+    --ink: #18181b;
+    --muted: #6b6b73;
+    --soft: #8a8a92;
+    --rule: rgba(24, 24, 27, 0.12);
+    --rule-solid: #d9d5cd;
+    --accent: #c9522a;
+    --accent-tint: rgba(201, 82, 42, 0.08);
+    --link: #2e5aa8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "PingFang SC", -apple-system, "Helvetica Neue", "Noto Sans SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 56px 32px 72px; }
+  .eyebrow {
+    margin: 0 0 10px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  h1 {
+    margin: 0;
+    font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
+    font-size: 40px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .lede { margin: 12px 0 0; max-width: 660px; font-size: 14px; line-height: 1.7; color: var(--muted); }
+  .frame {
+    margin-top: 28px;
+    padding: 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  svg { display: block; min-width: 900px; width: 100%; height: auto; }
+  .cards { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; margin-top: 26px; }
+  .card {
+    padding: 16px 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+  }
+  .card h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+  .card p { margin: 0; font-size: 12.5px; line-height: 1.75; color: var(--muted); }
+  .card code {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+  }
+  .note {
+    margin-top: 18px;
+    font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    color: var(--soft);
+  }
+  text { font-family: "PingFang SC", -apple-system, sans-serif; }
+  .node-name { font-size: 14px; font-weight: 600; fill: var(--ink); }
+  .node-sub { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10.5px; fill: var(--muted); }
+  .lane { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 0.14em; fill: var(--soft); }
+  .arrow-label {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    fill: var(--muted);
+  }
+  .legend { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10px; fill: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Guanshi · Auth</p>
+  <h1>userId 从哪来，请求怎么被认出来</h1>
+  <p class="lede">
+    这版没有账号密码，也没有第三方登录。App 第一次启动时在本机生成一个 deviceId，拿去换一个云端 userId，
+    之后每个请求都用它当 Bearer token。服务端只认这一个值，拿到就直接挂到 <code>req.userId</code>。
+  </p>
+
+  <div class="frame">
+    <svg viewBox="0 0 900 640" role="img" aria-labelledby="auth-title auth-desc">
+      <title id="auth-title">管事 App 的 userId 生成与请求鉴权链路</title>
+      <desc id="auth-desc">Android 端生成 deviceId 换 token，云端按 device_id 建用户并返回 userId，之后业务请求携带 Bearer userId 由中间件解析。</desc>
+
+      <defs>
+        <marker id="auth-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6b6b73"></path>
+        </marker>
+        <marker id="auth-arrow-link" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2e5aa8"></path>
+        </marker>
+      </defs>
+
+      <text class="lane" x="60" y="60">ANDROID 端 · RN / KOTLIN</text>
+      <text class="lane" x="520" y="60">云端 · EXPRESS + SQLITE</text>
+      <line x1="458" y1="76" x2="458" y2="556" stroke="#d9d5cd" stroke-width="1" stroke-dasharray="4,4"></line>
+
+      <!-- arrows first -->
+      <line x1="230" y1="160" x2="230" y2="188" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#auth-arrow)"></line>
+      <line x1="230" y1="256" x2="230" y2="284" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#auth-arrow)"></line>
+      <line x1="400" y1="320" x2="516" y2="320" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#auth-arrow-link)"></line>
+      <line x1="680" y1="352" x2="680" y2="380" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#auth-arrow)"></line>
+      <line x1="516" y1="416" x2="404" y2="416" stroke="#6b6b73" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#auth-arrow)"></line>
+      <line x1="230" y1="448" x2="230" y2="476" stroke="#6b6b73" stroke-width="1.2" marker-end="url(#auth-arrow)"></line>
+      <line x1="400" y1="512" x2="516" y2="512" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#auth-arrow-link)"></line>
+
+      <!-- arrow labels -->
+      <rect x="404" y="306" width="52" height="14" fill="#ffffff"></rect>
+      <text class="arrow-label" x="430" y="316" text-anchor="middle">登录</text>
+      <rect x="436" y="402" width="46" height="14" fill="#ffffff"></rect>
+      <text class="arrow-label" x="459" y="412" text-anchor="middle">token</text>
+      <rect x="416" y="498" width="84" height="14" fill="#ffffff"></rect>
+      <text class="arrow-label" x="458" y="508" text-anchor="middle">BEARER</text>
+
+      <!-- left nodes -->
+      <g>
+        <rect x="60" y="96" width="340" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="80" y="124">启动 · hydrate()</text>
+        <text class="node-sub" x="80" y="143">store 初始化，先读本地缓存渲染</text>
+      </g>
+      <g>
+        <rect x="60" y="192" width="340" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="80" y="220">生成并持久化 deviceId</text>
+        <text class="node-sub" x="80" y="239">AsyncStorage · android-xxxxxxxx</text>
+      </g>
+      <g>
+        <rect x="60" y="288" width="340" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="80" y="316">POST /api/auth/login</text>
+        <text class="node-sub" x="80" y="335">{ deviceId, name? }</text>
+      </g>
+      <g>
+        <rect x="60" y="384" width="340" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="80" y="412">保存 token</text>
+        <text class="node-sub" x="80" y="431">SecureStore · guanshi.token.v1</text>
+      </g>
+      <g>
+        <rect x="60" y="480" width="340" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="80" y="508">业务请求</text>
+        <text class="node-sub" x="80" y="527">Authorization: Bearer &lt;userId&gt;</text>
+      </g>
+
+      <!-- right nodes -->
+      <g>
+        <rect x="520" y="288" width="320" height="64" rx="6" fill="rgba(201,82,42,0.08)" stroke="#c9522a"></rect>
+        <text class="node-name" x="540" y="316">ensureUser(deviceId)</text>
+        <text class="node-sub" x="540" y="335">users 表按 device_id 查 · 无则建 u_xxx</text>
+      </g>
+      <g>
+        <rect x="520" y="384" width="320" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="540" y="412">返回 { token, user }</text>
+        <text class="node-sub" x="540" y="431">token 就是 user.id，没有签名</text>
+      </g>
+      <g>
+        <rect x="520" y="480" width="320" height="64" rx="6" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="node-name" x="540" y="508">auth 中间件</text>
+        <text class="node-sub" x="540" y="527">getUser(token) → req.userId</text>
+      </g>
+
+      <!-- legend -->
+      <g>
+        <rect x="60" y="586" width="14" height="10" rx="2" fill="#ffffff" stroke="rgba(24,24,27,0.16)"></rect>
+        <text class="legend" x="82" y="595">端侧节点</text>
+        <rect x="172" y="586" width="14" height="10" rx="2" fill="rgba(201,82,42,0.08)" stroke="#c9522a"></rect>
+        <text class="legend" x="194" y="595">建用户</text>
+        <line x1="272" y1="591" x2="304" y2="591" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#auth-arrow-link)"></line>
+        <text class="legend" x="314" y="595">HTTP 请求</text>
+        <line x1="410" y1="591" x2="442" y2="591" stroke="#6b6b73" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#auth-arrow)"></line>
+        <text class="legend" x="452" y="595">返回 / 本地流转</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h2>几个关键点</h2>
+      <p>
+        <code>deviceId</code> 是客户端自己造的，服务端不校验它是否合法，只把它当唯一索引。<br>
+        <code>token</code> 直接等于 <code>user.id</code>，没有 JWT 签名、没有过期时间——这是单机 MVP 的简化，
+        换设备就等于换用户，重装 App 会生成新的 deviceId 和新用户。<br>
+        收到 401 时客户端会自动重新 login 一次再把请求重放，所以 token 是"可自愈"的。
+      </p>
+    </div>
+    <div class="card">
+      <h2>要上生产得补什么</h2>
+      <p>
+        1. token 换成短期 JWT + refresh token，服务端存签名密钥；<br>
+        2. deviceId 加设备指纹校验，防止被猜；<br>
+        3. 加 <code>/auth/logout</code> 与多设备管理；<br>
+        4. 全链路 HTTPS，敏感接口再加限流。<br>
+        这些改动都集中在 <code>auth</code> 中间件与 login 路由，业务代码不用动。
+      </p>
+    </div>
+  </div>
+
+  <p class="note">目前所有接口都以这条链路鉴权，包括 /chat、/duties、/collections、/events 与 /ocr。</p>
+</main>
+</body>
+</html>

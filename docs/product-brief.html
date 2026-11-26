@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管事 GuanShi · 产品汇报</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-paper-2: #ececec;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-soft:    #5a6580;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif SC', 'Songti SC', serif;
+      --font-mono:     'Geist Mono', 'Noto Sans Mono CJK SC', ui-monospace, monospace;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 1376 - 2*48 = 1280，与图表 viewBox 等宽：桌面全屏无需横向滚动 */
+    .page { max-width: 1376px; margin: 0 auto; padding: 72px 48px 96px; }
+
+    .cjk { font-family: var(--font-sans); }
+    .cjkmono { font-family: var(--font-mono); }
+    .cjkserif { font-family: var(--font-serif); }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 3vw + 1rem, 3rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin: 14px 0 20px;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.4rem, 1.4vw + 1rem, 1.9rem);
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      margin: 10px 0 18px;
+    }
+
+    h3 {
+      font-size: 0.98rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    p { color: var(--color-muted); max-width: 76ch; }
+    p.lead { font-size: 1.06rem; color: var(--color-ink); max-width: 68ch; }
+
+    section { margin-top: 88px; }
+    .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
+
+    .rule { height: 1px; background: rgba(45,49,66,0.10); margin: 72px 0 0; }
+
+    /* ---------- cover metrics ---------- */
+    .metrics {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 0.9fr;
+      gap: 1px;
+      background: rgba(45,49,66,0.10);
+      border: 1px solid rgba(45,49,66,0.10);
+      margin-top: 44px;
+    }
+    .metric { background: #fff; padding: 26px 28px; }
+    .metric .num {
+      font-family: var(--font-serif);
+      font-size: 2.4rem;
+      line-height: 1.1;
+      color: var(--color-ink);
+      letter-spacing: -0.02em;
+    }
+    .metric .num.accent { color: var(--color-accent); }
+    .metric .cap {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      color: var(--color-muted);
+      margin-top: 10px;
+      display: block;
+    }
+
+    /* ---------- tables ---------- */
+    table { width: 100%; border-collapse: collapse; margin-top: 26px; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid rgba(45,49,66,0.10); vertical-align: top; }
+    th {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      border-bottom: 1px solid rgba(45,49,66,0.28);
+    }
+    td:first-child { color: var(--color-ink); font-weight: 600; }
+    td { color: var(--color-muted); }
+    td .muted { color: rgba(45,49,66,0.45); }
+    tr.total td { border-bottom: none; color: var(--color-ink); font-weight: 600; }
+
+    /* ---------- figures ---------- */
+    figure { margin-top: 32px; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    figure svg { width: 100%; min-width: 1280px; display: block; }
+    figcaption {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      color: var(--color-muted);
+      margin-top: 14px;
+      max-width: 84ch;
+      line-height: 1.7;
+    }
+
+    /* ---------- cards ---------- */
+    .cards {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 0.9fr;
+      gap: 20px;
+      margin-top: 34px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid rgba(45,49,66,0.10);
+      border-radius: 6px;
+      padding: 24px 24px 26px;
+    }
+    .card .tag {
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      display: block;
+      margin-bottom: 10px;
+    }
+    .card p { font-size: 0.86rem; line-height: 1.7; margin: 0; }
+
+    /* ---------- dialogue ---------- */
+    .dialogue {
+      background: #fff;
+      border: 1px solid rgba(45,49,66,0.10);
+      border-radius: 6px;
+      padding: 28px 30px;
+      margin-top: 26px;
+      max-width: 760px;
+    }
+    .dialogue .who {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      letter-spacing: 0.14em;
+      color: var(--color-soft);
+      margin-top: 16px;
+      display: block;
+    }
+    .dialogue .who:first-child { margin-top: 0; }
+    .dialogue .say { font-size: 0.92rem; color: var(--color-ink); margin-top: 2px; }
+    .dialogue .say.a { color: var(--color-muted); }
+    .dialogue .act {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--color-accent);
+      margin-top: 6px;
+      letter-spacing: 0.04em;
+    }
+    .note {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 1.02rem;
+      color: var(--color-muted);
+      margin-top: 22px;
+      max-width: 70ch;
+    }
+
+    /* ---------- lists ---------- */
+    ol.asks { margin: 26px 0 0; padding-left: 0; list-style: none; counter-reset: ask; }
+    ol.asks li {
+      counter-increment: ask;
+      position: relative;
+      padding: 18px 0 18px 52px;
+      border-bottom: 1px solid rgba(45,49,66,0.10);
+      color: var(--color-muted);
+      font-size: 0.92rem;
+    }
+    ol.asks li:last-child { border-bottom: none; }
+    ol.asks li::before {
+      content: counter(ask, decimal-leading-zero);
+      position: absolute; left: 0; top: 18px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--color-accent);
+      letter-spacing: 0.1em;
+    }
+    ol.asks strong { color: var(--color-ink); font-weight: 600; }
+
+    footer {
+      margin-top: 96px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(45,49,66,0.10);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      color: rgba(45,49,66,0.45);
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 900px) {
+      .page { padding: 44px 20px 64px; }
+      .metrics, .cards { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      figure svg { min-width: 0; }
+      section { margin-top: 48px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ============ COVER ============ -->
+  <p class="eyebrow">产品汇报 · 2026 年 11 月 · 内部</p>
+  <h1>管事：让「忘记」不再有代价</h1>
+  <p class="lead">
+    一个住在云端的 AI 生活管家。你不用记、不用录、不用打开 App——
+    早上它告诉你今天要做什么，晚上陪你复盘做完没有。即使你把 App 杀掉，该提醒的照样到。
+  </p>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="num">7 类</div>
+      <span class="cap">高频遗忘场景，全部来自真实痛点</span>
+    </div>
+    <div class="metric">
+      <div class="num">2 次</div>
+      <span class="cap">每日固定仪式：晨报 + 复盘</span>
+    </div>
+    <div class="metric">
+      <div class="num accent">0 秒</div>
+      <span class="cap">提醒对 App 存活的依赖</span>
+    </div>
+  </div>
+
+  <!-- ============ 01 问题 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">01 · 问题</span>
+    </div>
+    <h2>用户不是懒，是「记住」这件事没有第二双手</h2>
+    <p>
+      目标用户是典型的「承诺型遗忘者」：习惯性说「好」，转身被下一件事覆盖；
+      对周期性事务总拖到临期；对「未来某天」缺乏空间感。事情心里记着，但从不在正确的时间出现在眼前。
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>场景</th><th>现实表现</th><th>代价</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>聊天里的口头约定</td><td>微信里答应「下周三吃饭」，然后忘了</td><td>失信、关系受损</td></tr>
+        <tr><td>每周通勤订票</td><td>周一去杭州、周五回余姚北，总忘记买票</td><td>无票、改签、迟到</td></tr>
+        <tr><td>快递取件</td><td>短信通知了，漏看，包裹在驿站吃灰</td><td>滞留、退回、生鲜变质</td></tr>
+        <tr><td>家人生日</td><td>记不清谁哪天，错过才想起来</td><td>情感损失</td></tr>
+        <tr><td>孩子学校事项</td><td>孩子说了要带东西，口头答应后忘了</td><td>孩子受委屈</td></tr>
+        <tr><td>节日送礼</td><td>母亲节到了才反应，来不及准备</td><td>心意打折</td></tr>
+        <tr><td>收藏夹里的好东西</td><td>抖音、微信收藏后，再没打开</td><td>沉没成本</td></tr>
+      </tbody>
+    </table>
+
+    <p class="note">
+      所有现有工具都假设「用户会主动记录」，而目标用户的问题恰恰是「不会主动记录」。这就是缺口。
+    </p>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- ============ 02 机会 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">02 · 机会</span>
+    </div>
+    <h2>市场空位：自动发现 × 主动推进</h2>
+    <p>
+      横轴是「要不要你亲自动手录入」，纵轴是「它会不会主动回头找你」。
+      现有产品各占一角，右上角——不用你录、还会主动盯——目前是空的。
+    </p>
+
+    <figure>
+      <div class="diagram-container">
+        <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="position-title position-desc">
+          <title id="position-title">管事的位置：自动发现 × 主动推进</title>
+          <desc id="position-desc">定位象限图，横轴从手动录入到自动发现，纵轴从被动提醒到主动推进，管事位于右上方的市场空位。</desc>
+          <defs>
+            <pattern id="dots-position" width="22" height="22" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.10)"/>
+            </pattern>
+          </defs>
+
+          <rect width="100%" height="100%" fill="#f5f5f5"/>
+          <rect width="100%" height="100%" fill="url(#dots-position)" opacity="0.55"/>
+
+          <rect x="640" y="120" width="560" height="220" fill="rgba(191,69,32,0.03)"/>
+
+          <line x1="120" y1="340" x2="1200" y2="340" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="640" y1="120" x2="640" y2="580" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+
+          <text x="120" y="358" class="cjkmono" font-size="8" fill="#4f5d75" letter-spacing="0.18em">手动录入</text>
+          <text x="1200" y="358" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="end" letter-spacing="0.18em">自动发现</text>
+          <text x="640" y="108" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="middle" letter-spacing="0.18em">主动推进</text>
+          <text x="640" y="604" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="middle" letter-spacing="0.18em">被动提醒</text>
+
+          <text x="1188" y="146" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="end" letter-spacing="0.18em">市场空位</text>
+
+          <!-- 左下：手动 + 被动 -->
+          <circle cx="200" cy="470" r="4" fill="#2d3142"/>
+          <text x="212" y="474" class="cjk" font-size="10" fill="#4f5d75">系统日历 · 闹钟</text>
+
+          <circle cx="300" cy="506" r="4" fill="#2d3142"/>
+          <text x="312" y="510" class="cjk" font-size="10" fill="#4f5d75">滴答清单</text>
+
+          <!-- 左上：手动 + 主动 -->
+          <circle cx="270" cy="190" r="4" fill="#2d3142"/>
+          <text x="282" y="194" class="cjk" font-size="10" fill="#4f5d75">Sunsama</text>
+
+          <circle cx="430" cy="300" r="4" fill="#2d3142"/>
+          <text x="442" y="304" class="cjk" font-size="10" fill="#4f5d75">智记妞妞 · SmoreAI</text>
+
+          <!-- 右下：自动 + 被动 -->
+          <circle cx="880" cy="470" r="4" fill="#2d3142"/>
+          <text x="892" y="474" class="cjk" font-size="10" fill="#4f5d75">Mem · Rewind</text>
+
+          <!-- 右上：自动 + 主动 -->
+          <circle cx="1020" cy="190" r="4" fill="#2d3142"/>
+          <text x="1032" y="194" class="cjk" font-size="10" fill="#4f5d75">Claude Duet</text>
+
+          <circle cx="800" cy="250" r="6" fill="#bf4520"/>
+          <text x="814" y="255" class="cjk" font-size="12" font-weight="600" fill="#2d3142">管事</text>
+
+          <line x1="40" y1="660" x2="1240" y2="660" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+          <text x="40" y="678" class="cjkmono" font-size="8" fill="#4f5d75" letter-spacing="0.18em">LEGEND</text>
+
+          <circle cx="52" cy="698" r="6" fill="#bf4520"/>
+          <text x="68" y="702" class="cjk" font-size="8.5" fill="#4f5d75">本次机会 · 管事</text>
+
+          <circle cx="248" cy="698" r="4" fill="#2d3142"/>
+          <text x="260" y="702" class="cjk" font-size="8.5" fill="#4f5d75">已有产品</text>
+
+          <text x="380" y="702" class="cjkserif" font-size="9.5" font-style="italic" fill="#4f5d75">位置即信号：越往右上，越少依赖用户主动想起。</text>
+        </svg>
+      </div>
+      <figcaption>
+        图 01 · 横轴：录入方式（手动 → 自动发现）；纵轴：推进强度（被动提醒 → 主动找上门）。
+        管事占据右上空位，且场景聚焦在生活琐事，而非通用工作流。
+      </figcaption>
+    </figure>
+
+    <table>
+      <thead>
+        <tr><th>产品</th><th>自动发现</th><th>主动推进</th><th>每日仪式</th><th>与管事的关系</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>滴答清单</td><td class="muted">手动</td><td class="muted">弱</td><td class="muted">无</td><td>功能对标，但一切靠用户录</td></tr>
+        <tr><td>Sunsama</td><td class="muted">手动</td><td>强</td><td>强（晨间 + 收尾）</td><td>仪式设计的最佳参照</td></tr>
+        <tr><td>Claude Duet</td><td>强</td><td>强</td><td class="muted">无</td><td>主动式交互可借鉴，场景偏工作流</td></tr>
+        <tr><td>Mem · Rewind</td><td>强</td><td class="muted">被动检索</td><td class="muted">无</td><td>记忆能力强，但不推进</td></tr>
+        <tr><td>智记妞妞 · SmoreAI</td><td class="muted">需用户说</td><td class="muted">半主动</td><td class="muted">无</td><td>形态接近，缺自动发现</td></tr>
+        <tr><td>系统日历 · 闹钟</td><td class="muted">手动</td><td class="muted">被动</td><td class="muted">无</td><td>免费替代品，门槛正是「要自己录」</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- ============ 03 产品 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">03 · 产品</span>
+    </div>
+    <h2>三个仪式，构成产品骨架</h2>
+    <p>
+      待办类产品最常见的死法是「三天后不用了」。管事用固定节奏把用户留下来：
+      早上一次晨报，晚上一次复盘，中间由事件驱动提醒。
+    </p>
+
+    <figure>
+      <div class="diagram-container">
+        <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rhythm-title rhythm-desc">
+          <title id="rhythm-title">一周的节奏：两次仪式与事件驱动的提醒</title>
+          <desc id="rhythm-desc">时间轴展示一周内每日晨报与晚间复盘两条固定节奏线，以及周一到周日由事件触发的五次提醒。</desc>
+          <defs>
+            <pattern id="dots-rhythm" width="22" height="22" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.10)"/>
+            </pattern>
+          </defs>
+
+          <rect width="100%" height="100%" fill="#f5f5f5"/>
+          <rect width="100%" height="100%" fill="url(#dots-rhythm)" opacity="0.55"/>
+
+          <!-- 两条仪式带 -->
+          <line x1="120" y1="240" x2="1200" y2="240" stroke="rgba(45,49,66,0.25)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="120" y="228" class="cjkmono" font-size="9" fill="#4f5d75" letter-spacing="0.12em">每日 07:30 · 晨报</text>
+
+          <line x1="120" y1="560" x2="1200" y2="560" stroke="rgba(45,49,66,0.25)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="120" y="548" class="cjkmono" font-size="9" fill="#4f5d75" letter-spacing="0.12em">每日 21:00 · 复盘</text>
+
+          <!-- 基线 -->
+          <line x1="120" y1="400" x2="1200" y2="400" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+
+          <!-- 刻度 -->
+          <line x1="160" y1="392" x2="160" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="320" y1="392" x2="320" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="480" y1="392" x2="480" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="640" y1="392" x2="640" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="800" y1="392" x2="800" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="960" y1="392" x2="960" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+          <line x1="1120" y1="392" x2="1120" y2="408" stroke="rgba(45,49,66,0.45)" stroke-width="1"/>
+
+          <!-- 引出线 -->
+          <line x1="160" y1="392" x2="160" y2="332" stroke="rgba(45,49,66,0.40)" stroke-width="1"/>
+          <line x1="480" y1="392" x2="480" y2="332" stroke="rgba(45,49,66,0.40)" stroke-width="1"/>
+          <line x1="800" y1="392" x2="800" y2="332" stroke="rgba(45,49,66,0.40)" stroke-width="1"/>
+          <line x1="320" y1="408" x2="320" y2="468" stroke="rgba(45,49,66,0.40)" stroke-width="1"/>
+          <line x1="640" y1="408" x2="640" y2="468" stroke="rgba(45,49,66,0.40)" stroke-width="1"/>
+          <line x1="1120" y1="408" x2="1120" y2="468" stroke="rgba(45,49,66,0.40)" stroke-width="1"/>
+
+          <!-- 事件点 -->
+          <circle cx="160" cy="400" r="4" fill="#2d3142"/>
+          <circle cx="320" cy="400" r="4" fill="#2d3142"/>
+          <circle cx="480" cy="400" r="6" fill="#bf4520"/>
+          <circle cx="640" cy="400" r="4" fill="#2d3142"/>
+          <circle cx="800" cy="400" r="4" fill="#2d3142"/>
+          <circle cx="1120" cy="400" r="6" fill="#bf4520"/>
+
+          <!-- 事件标签 -->
+          <text x="160" y="322" class="cjk" font-size="10" fill="#4f5d75" text-anchor="middle">学校物品提醒</text>
+          <text x="320" y="486" class="cjk" font-size="10" fill="#4f5d75" text-anchor="middle">快递取件提醒</text>
+          <text x="480" y="322" class="cjk" font-size="10" font-weight="600" fill="#2d3142" text-anchor="middle">订票提醒 · 提前 3 天</text>
+          <text x="640" y="486" class="cjk" font-size="10" fill="#4f5d75" text-anchor="middle">未订票，升级提醒</text>
+          <text x="800" y="322" class="cjk" font-size="10" fill="#4f5d75" text-anchor="middle">出行提醒</text>
+          <text x="1120" y="486" class="cjk" font-size="10" font-weight="600" fill="#2d3142" text-anchor="middle">周回顾 · 收藏 5 条</text>
+
+          <!-- 星期标签（盖在引出线之上） -->
+          <rect x="143" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="160" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周一</text>
+          <rect x="303" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="320" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周二</text>
+          <rect x="463" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="480" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周三</text>
+          <rect x="623" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="640" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周四</text>
+          <rect x="783" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="800" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周五</text>
+          <rect x="943" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="960" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周六</text>
+          <rect x="1103" y="414" width="34" height="16" rx="2" fill="#f5f5f5"/>
+          <text x="1120" y="426" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">周日</text>
+
+          <line x1="40" y1="660" x2="1240" y2="660" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+          <text x="40" y="678" class="cjkmono" font-size="8" fill="#4f5d75" letter-spacing="0.18em">LEGEND</text>
+
+          <circle cx="52" cy="698" r="6" fill="#bf4520"/>
+          <text x="68" y="702" class="cjk" font-size="8.5" fill="#4f5d75">云端主动发起的关键提醒</text>
+
+          <circle cx="262" cy="698" r="4" fill="#2d3142"/>
+          <text x="274" y="702" class="cjk" font-size="8.5" fill="#4f5d75">常规提醒</text>
+
+          <line x1="380" y1="698" x2="412" y2="698" stroke="rgba(45,49,66,0.45)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="420" y="702" class="cjk" font-size="8.5" fill="#4f5d75">每日固定仪式</text>
+        </svg>
+      </div>
+      <figcaption>
+        图 02 · 一周示例。两条虚线是固定仪式，基线上的点是事件驱动的提醒。
+        全部由云端发起，用户手机上的 App 是否运行不影响送达。
+      </figcaption>
+    </figure>
+
+    <div class="cards">
+      <div class="card">
+        <span class="tag">仪式一 · 07:30</span>
+        <h3>晨报：今天几件事</h3>
+        <p>把散落在各处的待办收拢成一份清单，一次推送解决。通知栏可直接标记完成，不必打开 App。这是用户每天唯一必看的一条推送。</p>
+      </div>
+      <div class="card">
+        <span class="tag">仪式二 · 21:00</span>
+        <h3>复盘：今天完成 X / Y</h3>
+        <p>让完成被看见，让未完成有去处——顺延到明天、标记完成、或明确放弃。没有一条待办会悄悄消失，这是信任的底线。</p>
+      </div>
+      <div class="card">
+        <span class="tag">随时 · 对话</span>
+        <h3>助手：聊着聊着就办了</h3>
+        <p>可以闲聊，也可以落成待办。用户往往不是一开始就知道自己要什么，意图是聊出来的。</p>
+      </div>
+    </div>
+
+    <div class="dialogue">
+      <span class="who">用户</span>
+      <p class="say">母亲节适合送什么？</p>
+      <span class="who">管事</span>
+      <p class="say a">看你妈妈的性格。实用一点可以送按摩仪或护颈枕，想要仪式感就鲜花加一顿饭。她最近提过想要什么吗？</p>
+      <span class="who">用户</span>
+      <p class="say">她老说肩膀疼</p>
+      <span class="who">管事</span>
+      <p class="say a">那按摩仪是个好选择，三五百元就能买到不错的。</p>
+      <span class="who">用户</span>
+      <p class="say">行，那提醒我明天去淘宝上看看</p>
+      <span class="who">管事</span>
+      <p class="say a">记下了。明天上午 10 点提醒你去淘宝挑按摩仪。</p>
+      <p class="act">[ 改时间 ]　[ 不用了 ]</p>
+    </div>
+
+    <p class="note">
+      对话是漏斗的上游，待办是下游。多数工具要求「先想清楚再录入」，
+      而真实场景里，人是在聊的过程中才想清楚要做什么的。
+    </p>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- ============ 04 技术 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">04 · 技术</span>
+    </div>
+    <h2>大脑在云端，感知在手机</h2>
+    <p>
+      把 Agent 放在云端，是为了让提醒摆脱对 App 存活的依赖；
+      把采集留在手机，是因为短信、通知、语音、截图只存在于设备上。
+    </p>
+
+    <figure>
+      <div class="diagram-container">
+        <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="stack-title stack-desc">
+          <title id="stack-title">端云分工：大脑在云端，感知在手机</title>
+          <desc id="stack-desc">架构图展示手机端采集生活信号并接收推送，云端 Agent 理解信号、写入待办与记忆、定时打分并推送提醒。</desc>
+          <defs>
+            <pattern id="dots-stack" width="22" height="22" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.10)"/>
+            </pattern>
+            <marker id="arrow-stack" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+            <marker id="arrow-stack-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+          </defs>
+
+          <rect width="100%" height="100%" fill="#f5f5f5"/>
+          <rect width="100%" height="100%" fill="url(#dots-stack)" opacity="0.55"/>
+
+          <!-- 分区 -->
+          <rect x="48" y="136" width="520" height="504" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+          <rect x="56" y="144" width="116" height="14" rx="2" fill="#f5f5f5"/>
+          <text x="64" y="155" class="cjkmono" font-size="8" fill="rgba(45,49,66,0.40)" letter-spacing="0.14em">手机端 · ANDROID</text>
+
+          <rect x="600" y="136" width="632" height="504" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+          <rect x="608" y="144" width="116" height="14" rx="2" fill="#f5f5f5"/>
+          <text x="616" y="155" class="cjkmono" font-size="8" fill="rgba(45,49,66,0.40)" letter-spacing="0.14em">云端 · 单机服务</text>
+
+          <!-- 箭头（先画，压在盒子下） -->
+          <line x1="288" y1="232" x2="656" y2="232" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow-stack)"/>
+          <rect x="420" y="212" width="64" height="12" rx="2" fill="#f5f5f5"/>
+          <text x="452" y="221" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="middle" letter-spacing="0.08em">上报信号</text>
+
+          <line x1="888" y1="236" x2="1000" y2="236" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow-stack)"/>
+          <rect x="912" y="216" width="64" height="12" rx="2" fill="#f5f5f5"/>
+          <text x="944" y="225" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="middle" letter-spacing="0.08em">写待办</text>
+
+          <line x1="772" y1="272" x2="772" y2="360" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow-stack)"/>
+          <rect x="784" y="302" width="56" height="12" rx="2" fill="#f5f5f5"/>
+          <text x="788" y="311" class="cjkmono" font-size="8" fill="#4f5d75" letter-spacing="0.08em">到点唤醒</text>
+
+          <line x1="1100" y1="268" x2="1100" y2="360" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow-stack)"/>
+          <rect x="1112" y="302" width="56" height="12" rx="2" fill="#f5f5f5"/>
+          <text x="1116" y="311" class="cjkmono" font-size="8" fill="#4f5d75" letter-spacing="0.08em">到期事项</text>
+
+          <line x1="888" y1="392" x2="1000" y2="392" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow-stack)"/>
+          <rect x="916" y="372" width="56" height="12" rx="2" fill="#f5f5f5"/>
+          <text x="944" y="381" class="cjkmono" font-size="8" fill="#4f5d75" text-anchor="middle" letter-spacing="0.08em">该提醒了</text>
+
+          <path d="M 1100,424 V 580 Q 1100,588 1092,588 H 348 Q 340,588 340,580 V 500 Q 340,492 332,492 H 288"
+                fill="none" stroke="#bf4520" stroke-width="1.4" marker-end="url(#arrow-stack-accent)"/>
+          <rect x="676" y="568" width="56" height="12" rx="2" fill="#f5f5f5"/>
+          <text x="704" y="577" class="cjkmono" font-size="8" fill="#bf4520" text-anchor="middle" letter-spacing="0.08em">推送</text>
+
+          <!-- 手机端节点 -->
+          <rect x="88" y="200" width="200" height="64" rx="6" fill="#f5f5f5"/>
+          <rect x="88" y="200" width="200" height="64" rx="6" fill="rgba(79,93,117,0.10)" stroke="#5a6580" stroke-width="1"/>
+          <rect x="96" y="208" width="28" height="12" rx="2" fill="transparent" stroke="rgba(90,101,128,0.40)" stroke-width="0.8"/>
+          <text x="110" y="217" class="cjkmono" font-size="7" fill="#5a6580" text-anchor="middle" letter-spacing="0.08em">IN</text>
+          <text x="188" y="236" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">生活信号</text>
+          <text x="188" y="252" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">短信 · 通知 · 语音</text>
+
+          <rect x="88" y="320" width="200" height="64" rx="6" fill="#f5f5f5"/>
+          <rect x="88" y="320" width="200" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+          <rect x="96" y="328" width="44" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+          <text x="118" y="337" class="cjkmono" font-size="7" fill="#2d3142" text-anchor="middle" letter-spacing="0.08em">ALARM</text>
+          <text x="188" y="356" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">本地兜底提醒</text>
+          <text x="188" y="372" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">断网也能响</text>
+
+          <rect x="88" y="460" width="200" height="64" rx="6" fill="#f5f5f5"/>
+          <rect x="88" y="460" width="200" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+          <rect x="96" y="468" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+          <text x="110" y="477" class="cjkmono" font-size="7" fill="#2d3142" text-anchor="middle" letter-spacing="0.08em">APP</text>
+          <text x="188" y="496" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">管事 App</text>
+          <text x="188" y="512" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">今日 · 助手 · 我的</text>
+
+          <!-- 云端节点 -->
+          <rect x="656" y="200" width="232" height="72" rx="6" fill="#f5f5f5"/>
+          <rect x="656" y="200" width="232" height="72" rx="6" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+          <rect x="664" y="208" width="40" height="12" rx="2" fill="transparent" stroke="rgba(191,69,32,0.50)" stroke-width="0.8"/>
+          <text x="684" y="217" class="cjkmono" font-size="7" fill="#bf4520" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+          <text x="772" y="242" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">云端 Agent</text>
+          <text x="772" y="260" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">理解 · 判断 · 调大模型</text>
+
+          <rect x="1000" y="204" width="200" height="64" rx="6" fill="#f5f5f5"/>
+          <rect x="1000" y="204" width="200" height="64" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+          <rect x="1008" y="212" width="24" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+          <text x="1020" y="221" class="cjkmono" font-size="7" fill="#4f5d75" text-anchor="middle" letter-spacing="0.08em">DB</text>
+          <text x="1100" y="240" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">待办与记忆</text>
+          <text x="1100" y="256" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">SQLite · 无额外中间件</text>
+
+          <rect x="656" y="360" width="232" height="64" rx="6" fill="#f5f5f5"/>
+          <rect x="656" y="360" width="232" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+          <rect x="664" y="368" width="40" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+          <text x="684" y="377" class="cjkmono" font-size="7" fill="#2d3142" text-anchor="middle" letter-spacing="0.08em">TIMER</text>
+          <text x="772" y="396" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">定时与打分</text>
+          <text x="772" y="412" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">每 30 秒扫描一次</text>
+
+          <rect x="1000" y="360" width="200" height="64" rx="6" fill="#f5f5f5"/>
+          <rect x="1000" y="360" width="200" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+          <rect x="1008" y="368" width="32" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+          <text x="1024" y="377" class="cjkmono" font-size="7" fill="#2d3142" text-anchor="middle" letter-spacing="0.08em">PUSH</text>
+          <text x="1100" y="396" class="cjk" font-size="12" font-weight="600" fill="#2d3142" text-anchor="middle">推送服务</text>
+          <text x="1100" y="412" class="cjkmono" font-size="9" fill="#4f5d75" text-anchor="middle">厂商通道 · 杀 App 可达</text>
+
+          <!-- 图例 -->
+          <line x1="40" y1="660" x2="1240" y2="660" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+          <text x="40" y="678" class="cjkmono" font-size="8" fill="#4f5d75" letter-spacing="0.18em">LEGEND</text>
+
+          <rect x="40" y="690" width="14" height="10" rx="2" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+          <text x="60" y="699" class="cjk" font-size="8.5" fill="#4f5d75">云端大脑</text>
+
+          <rect x="170" y="690" width="14" height="10" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+          <text x="190" y="699" class="cjk" font-size="8.5" fill="#4f5d75">服务节点</text>
+
+          <rect x="300" y="690" width="14" height="10" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+          <text x="320" y="699" class="cjk" font-size="8.5" fill="#4f5d75">数据存储</text>
+
+          <rect x="430" y="690" width="14" height="10" rx="2" fill="rgba(79,93,117,0.10)" stroke="#5a6580" stroke-width="1"/>
+          <text x="450" y="699" class="cjk" font-size="8.5" fill="#4f5d75">手机端采集</text>
+
+          <line x1="572" y1="695" x2="600" y2="695" stroke="#bf4520" stroke-width="1.4" marker-end="url(#arrow-stack-accent)"/>
+          <text x="608" y="699" class="cjk" font-size="8.5" fill="#4f5d75">推送（App 被杀仍可达）</text>
+        </svg>
+      </div>
+      <figcaption>
+        图 03 · 职责边界。手机负责「感知」与「呈现」，云端负责「理解」与「推进」。
+        原始短信、语音、图片不出设备；云端只处理必要摘要。
+      </figcaption>
+    </figure>
+
+    <div class="cards">
+      <div class="card">
+        <span class="tag">收益一</span>
+        <h3>杀掉 App，提醒照样到</h3>
+        <p>推送走厂商通道，不依赖 App 进程。周期性事务（通勤订票、生日、节日）在云端完全闭环，手机是否开机都不影响。</p>
+      </div>
+      <div class="card">
+        <span class="tag">收益二</span>
+        <h3>一台机器就能跑</h3>
+        <p>单进程加 SQLite，无需缓存、消息队列等中间件。起步成本约每月百元级，用户量到万级再考虑迁移。</p>
+      </div>
+      <div class="card">
+        <span class="tag">收益三</span>
+        <h3>成本省在源头</h3>
+        <p>规则先筛、图片在手机转文字、提醒用语模板化，只有「理解自然语言」才调大模型。人均模型成本每月约几毛到两元。</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- ============ 05 商业 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">05 · 商业</span>
+    </div>
+    <h2>用户不为「提醒」付费，为「不再付出代价」付费</h2>
+    <p>
+      一次错过的生日、一次没取的生鲜、一次临时买贵的礼物，价值就超过年费。
+      定价按「自动发现」这一核心能力分层。
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>层级</th><th>价格</th><th>包含</th><th>目的</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>免费</td><td>0</td><td>手动待办、每日晨报与复盘、最多 5 个周期待办</td><td>零门槛体验节奏感</td></tr>
+        <tr><td>高级</td><td>¥25–29 / 月<br>¥238 / 年</td><td>短信识别、通知监听、无限待办、助手对话、长期记忆、收藏回顾</td><td>核心付费层</td></tr>
+        <tr><td>家庭</td><td>¥49 / 月</td><td>高级全部 + 家庭共享、孩子事项协同</td><td>提高客单与替换成本</td></tr>
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr><th>单位经济（估算）</th><th>数值</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>服务器</td><td>约 ¥100 / 月</td><td>单台 2C4G 云主机，可支撑 MVP 阶段</td></tr>
+        <tr><td>模型调用</td><td>约 ¥1–2 / 人 / 月</td><td>中等活跃度估算，规则与模板前置后</td></tr>
+        <tr><td>推送</td><td>接近 0</td><td>厂商通道免费额度内</td></tr>
+        <tr class="total"><td>高级层毛利率</td><td>约 85% 以上</td><td>随模型单价下降继续改善</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- ============ 06 路线 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">06 · 路线</span>
+    </div>
+    <h2>12 周，三个可验收的里程碑</h2>
+    <p>
+      每一期都以「能不能演示」为标准，不做无法验证的功能。
+      第一期就验证最关键的一件事：杀掉 App，提醒还能不能到。
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>阶段</th><th>周期</th><th>交付</th><th>验收标准</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>P1 骨架与仪式</td><td>第 1–4 周</td>
+          <td>云端 Agent、待办库、定时调度、厂商推送、晨报与复盘、助手对话（文字）、周期待办</td>
+          <td>配置「每周一五通勤」后杀掉 App，周三仍收到订票推送</td>
+        </tr>
+        <tr>
+          <td>P2 自动发现</td><td>第 5–8 周</td>
+          <td>短信识别快递、截图识别约定、待确认区、收藏回顾、通知监听</td>
+          <td>收到快递短信，无需打开 App，自动生成待办并在傍晚提醒</td>
+        </tr>
+        <tr>
+          <td>P3 主动推进</td><td>第 9–12 周</td>
+          <td>智能提醒时机、升级与降级话术、长期记忆、批量合并、周回顾</td>
+          <td>连续忽略某类提醒后自动降频，连续响应后自动提频</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- ============ 07 诉求 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="eyebrow">07 · 需要拍板</span>
+    </div>
+    <h2>三件事</h2>
+
+    <ol class="asks">
+      <li>
+        <strong>批准 12 周 MVP，锁定首个验证场景。</strong>
+        建议以「周期性通勤订票 + 快递取件 + 生日节日」三个场景切入——
+        它们不依赖任何 AI 识别准确率，第一周就能演示价值。
+      </li>
+      <li>
+        <strong>确认投入：一人开发 + 基础云资源。</strong>
+        服务器约每月百元；模型调用按用户量线性增长，人均每月几毛到两元（估算）。
+        前期无需额外中间件与运维人力。
+      </li>
+      <li>
+        <strong>确认市场边界：仅 Android、国内市场先行。</strong>
+        自动发现高度依赖 Android 的短信与通知能力，iOS 无法对等实现。
+        这是能力选择，也是竞争壁垒。
+      </li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>管事 GuanShi · 产品汇报 · 2026-11-25</span>
+    <span>完整论证：docs/product-plan.md　技术细节：docs/technical-design.md</span>
+  </footer>
+
+</div>
+</body>
+</html>
