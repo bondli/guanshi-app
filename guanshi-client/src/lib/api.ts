@@ -151,6 +151,9 @@ export const api = {
 
   dropDuty: (id: string) => request<{ duty: Duty }>(`/duties/${id}`, { method: 'DELETE' }),
 
+  deleteDutyPermanent: (id: string) =>
+    request<{ ok: boolean }>(`/duties/${id}/permanent`, { method: 'DELETE' }),
+
   createCollection: (input: Partial<Collection> & { title: string }) =>
     request<{ collection: Collection }>('/collections', { method: 'POST', body: JSON.stringify(input) }),
 

@@ -9,6 +9,7 @@ import {
   createCollection,
   createDuty,
   deleteCollection,
+  deleteDuty,
   deleteMemory,
   ensureUser,
   getDuty,
@@ -209,6 +210,19 @@ router.delete(
       return
     }
     res.json({ duty })
+  }),
+)
+
+router.delete(
+  '/duties/:id/permanent',
+  auth,
+  wrap((req, res) => {
+    const ok = deleteDuty(req.userId, req.params.id)
+    if (!ok) {
+      res.status(404).json({ error: '待办不存在' })
+      return
+    }
+    res.json({ ok: true })
   }),
 )
 

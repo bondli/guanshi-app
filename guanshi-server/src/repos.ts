@@ -185,6 +185,14 @@ export function updateDuty(
   return getDuty(userId, id)
 }
 
+/** 彻底删除：连待办带未触发的提醒一起清掉，不可恢复 */
+export function deleteDuty(userId: string, id: string): boolean {
+  const result = db.prepare('DELETE FROM duties WHERE user_id = ? AND id = ?').run(userId, id)
+  if (result.changes === 0) return false
+  db.prepare('DELETE FROM timers WHERE user_id = ? AND duty_id = ? AND fired = 0').run(userId, id)
+  return true
+}
+
 function statusLabel(status: DutyStatus): string {
   return status === 'done' ? '标记完成' : status === 'dropped' ? '不再提醒' : status === 'pending' ? '等待确认' : '恢复待办'
 }

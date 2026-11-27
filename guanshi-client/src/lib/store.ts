@@ -116,6 +116,7 @@ interface AppState {
   toggleDuty: (id: string) => Promise<void>
   confirmDuty: (id: string) => Promise<void>
   dropDuty: (id: string) => Promise<void>
+  purgeDuty: (id: string) => Promise<void>
   snoozeDuty: (id: string) => Promise<void>
   addDuty: (input: Partial<Duty> & { title: string }) => Promise<Duty | null>
   sendChat: (text: string) => Promise<void>
@@ -496,6 +497,16 @@ export const useApp = create<AppState>()((set, get) => ({
       await api.dropDuty(id)
     } catch {
       // 本地已隐藏
+    }
+    set({ stats: computeStats(get().duties, get().collections, get().stats) })
+  },
+
+  purgeDuty: async (id) => {
+    set({ duties: get().duties.filter((d) => d.id !== id) })
+    try {
+      await api.deleteDutyPermanent(id)
+    } catch {
+      // 本地已删除；联网后以服务端为准
     }
     set({ stats: computeStats(get().duties, get().collections, get().stats) })
   },

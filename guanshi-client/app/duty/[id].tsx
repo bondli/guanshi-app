@@ -2,7 +2,7 @@ import React from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ChevronLeft, Clock } from 'lucide-react-native'
+import { ChevronLeft, Clock, Trash2 } from 'lucide-react-native'
 import { useApp } from '@/src/lib/store'
 import { usePalette } from '@/src/theme/tokens'
 import { Badge, Button, Card, Empty, Screen } from '@/src/ui'
@@ -14,6 +14,7 @@ export default function DutyDetailScreen() {
   const toggleDuty = useApp((s) => s.toggleDuty)
   const snoozeDuty = useApp((s) => s.snoozeDuty)
   const dropDuty = useApp((s) => s.dropDuty)
+  const purgeDuty = useApp((s) => s.purgeDuty)
   const confirm = useApp((s) => s.confirm)
   const duty = duties.find((d) => d.id === id)
 
@@ -40,9 +41,28 @@ export default function DutyDetailScreen() {
     router.back()
   }
 
+  const onPurge = async () => {
+    const ok = await confirm({
+      title: '彻底删除',
+      message: '删除后无法恢复，这条待办和它未触发的提醒都会被清除。',
+      confirmText: '删除',
+      tone: 'danger',
+    })
+    if (!ok) return
+    await purgeDuty(duty.id)
+    router.back()
+  }
+
   return (
     <Screen>
-      <DetailHeader title="待办详情" />
+      <DetailHeader
+        title="待办详情"
+        right={
+          <Pressable onPress={onPurge} hitSlop={8} style={{ padding: 6 }}>
+            <Trash2 size={18} color={p.danger} />
+          </Pressable>
+        }
+      />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         <Card style={{ padding: 16 }}>
           <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
@@ -116,7 +136,7 @@ export default function DutyDetailScreen() {
   )
 }
 
-function DetailHeader({ title }: { title: string }) {
+function DetailHeader({ title, right }: { title: string; right?: React.ReactNode }) {
   const p = usePalette()
   const insets = useSafeAreaInsets()
   return (
@@ -129,7 +149,8 @@ function DetailHeader({ title }: { title: string }) {
       <Pressable onPress={() => router.back()} hitSlop={8} style={{ padding: 6 }}>
         <ChevronLeft size={20} color={p.fg} />
       </Pressable>
-      <Text style={{ fontSize: 15, fontWeight: '600', color: p.fg }}>{title}</Text>
+      <Text style={{ flex: 1, fontSize: 15, fontWeight: '600', color: p.fg }}>{title}</Text>
+      {right}
     </View>
   )
 }
