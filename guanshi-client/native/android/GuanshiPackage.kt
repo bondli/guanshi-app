@@ -15,6 +15,7 @@ class GuanshiPackage : ReactPackage {
           GuanshiSmsModule(reactContext),
           GuanshiNotifyModule(reactContext),
           GuanshiCryptoModule(reactContext),
+          GuanshiPushModule(reactContext),
       )
 
   override fun createViewManagers(

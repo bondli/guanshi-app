@@ -405,12 +405,12 @@ export function addOutbox(
   data: Record<string, unknown> = {},
   messageId?: string,
 ): void {
-  db.prepare(
-    'INSERT INTO outbox (user_id,message_id,title,body,data,status,created_at) VALUES (?,?,?,?,?,?,?)',
-  ).run(userId, messageId ?? null, title, body, JSON.stringify(data), 'pending', now())
+  const info = db
+    .prepare('INSERT INTO outbox (user_id,message_id,title,body,data,status,created_at) VALUES (?,?,?,?,?,?,?)')
+    .run(userId, messageId ?? null, title, body, JSON.stringify(data), 'pending', now())
 
-  // 前台长连接即时下发；不在线时消息已落库，客户端下次 bootstrap/refresh 会补齐
-  pushToUser(userId, {
+  // 前台长连接即时下发；送达就标记 sent，避免下次连上时重复补发
+  const delivered = pushToUser(userId, {
     type: 'message',
     title,
     body,
@@ -418,14 +418,32 @@ export function addOutbox(
     dutyId: typeof data.dutyId === 'string' ? data.dutyId : undefined,
     kind: typeof data.type === 'string' ? data.type : undefined,
   })
+  if (delivered) {
+    db.prepare('UPDATE outbox SET status = ?, sent_at = ? WHERE id = ?').run('sent', now(), Number(info.lastInsertRowid))
+  }
 }
 
 export function pendingOutbox(limit = 50): Row[] {
   return db.prepare('SELECT * FROM outbox WHERE status = ? ORDER BY created_at LIMIT ?').all('pending', limit) as Row[]
 }
 
+export function pendingOutboxForUser(userId: string): Row[] {
+  return db
+    .prepare('SELECT * FROM outbox WHERE status = ? AND user_id = ? ORDER BY created_at')
+    .all('pending', userId) as Row[]
+}
+
 export function markOutboxSent(id: number): void {
   db.prepare('UPDATE outbox SET status = ?, sent_at = ? WHERE id = ?').run('sent', now(), id)
+}
+
+export function markOutboxDelivered(ids: number[]): void {
+  if (!ids.length) return
+  const stmt = db.prepare('UPDATE outbox SET status = ?, sent_at = ? WHERE id = ?')
+  const tx = db.transaction((list: number[]) => {
+    for (const id of list) stmt.run('sent', now(), id)
+  })
+  tx(ids)
 }
 
 export function registerPushToken(userId: string, token: string, platform = 'android'): void {
@@ -438,6 +456,11 @@ export function registerPushToken(userId: string, token: string, platform = 'and
 export function listPushTokens(userId: string): string[] {
   const rows = db.prepare('SELECT token FROM push_tokens WHERE user_id = ?').all(userId) as Row[]
   return rows.map((row) => row.token)
+}
+
+/** 厂商返回 token 失效时清掉，避免每 30s 拿废 token 重试 */
+export function removePushToken(token: string): void {
+  db.prepare('DELETE FROM push_tokens WHERE token = ?').run(token)
 }
 
 /* ---------------- 统计 ---------------- */

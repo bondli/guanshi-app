@@ -16,12 +16,13 @@ interface Client {
 }
 
 export interface StreamPayload {
-  type: 'message'
+  type: 'message' | 'backlog'
   title: string
   body: string
   messageId?: string
   dutyId?: string
   kind?: string
+  count?: number
 }
 
 const clients = new Set<Client>()
@@ -33,7 +34,7 @@ function userExists(token: string): string | null {
   return row?.id ?? null
 }
 
-export function attachStream(server: Server): void {
+export function attachStream(server: Server, onConnect?: (userId: string) => void): void {
   const wss = new WebSocketServer({ noServer: true })
 
   server.on('upgrade', (req, socket, head) => {
@@ -52,6 +53,12 @@ export function attachStream(server: Server): void {
       const client: Client = { socket: ws, userId, alive: true }
       clients.add(client)
       console.log(`[stream] ${userId} 接入，在线 ${clients.size}`)
+      // 连上后立刻补发离线期间积压的提醒（晨报/复盘/到点提醒）
+      try {
+        onConnect?.(userId)
+      } catch (error) {
+        console.warn('[stream] 补发失败', error)
+      }
       ws.on('pong', () => {
         client.alive = true
       })

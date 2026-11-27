@@ -1,8 +1,10 @@
 import 'react-native-gesture-handler'
 import React, { useEffect, useRef, useState } from 'react'
-import { Animated, AppState, Easing, Image, Linking, Text, View } from 'react-native'
+import { Animated, AppState, Easing, Image, Linking, Platform, Text, View } from 'react-native'
 import { Stack, router, usePathname } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import * as NavigationBar from 'expo-navigation-bar'
+import * as SystemUI from 'expo-system-ui'
 import { StatusBar } from 'expo-status-bar'
 import * as Notifications from 'expo-notifications'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -10,21 +12,39 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useApp } from '@/src/lib/store'
-import { getPendingShare, onShareReceived, readClipboardText } from '@/src/lib/native'
-import { usePalette } from '@/src/theme/tokens'
+import {
+  REMINDER_CHANNEL,
+  ensureNotificationPermission,
+  getPendingShare,
+  onShareReceived,
+  readClipboardText,
+} from '@/src/lib/native'
+import { usePalette, useResolvedTheme } from '@/src/theme/tokens'
 import { ConfirmDialog, ToastView } from '@/src/ui'
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined)
 
 try {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
+    handleNotification: async (notification) => {
+      // 晨报要能叫醒人，其余提醒保持安静
+      const kind = (notification.request.content.data as { kind?: string } | undefined)?.kind
+      return {
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: kind === 'briefing',
+        shouldSetBadge: false,
+      }
+    },
   })
+  if (Platform.OS === 'android') {
+    void Notifications.setNotificationChannelAsync(REMINDER_CHANNEL, {
+      name: '管事提醒',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+    }).catch(() => undefined)
+  }
 } catch {
   // 通知模块在部分环境不可用，忽略
 }
@@ -158,7 +178,7 @@ function BootSplash({ onFinish }: { onFinish: () => void }) {
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
-      Animated.delay(460),
+      Animated.delay(1460),
       Animated.timing(fade, {
         toValue: 0,
         duration: 320,
@@ -237,7 +257,15 @@ export default function RootLayout() {
   const onboarded = useApp((s) => s.settings.onboarded)
   const theme = useApp((s) => s.settings.theme)
   const pathname = usePathname()
+  const resolvedTheme = useResolvedTheme()
   const [splashDone, setSplashDone] = useState(false)
+
+  // 应用内可以手动切暗色，系统导航栏不会跟着变，这里主动同步，避免底部安全区留一条浅色
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+    void SystemUI.setBackgroundColorAsync(p.bg).catch(() => undefined)
+    NavigationBar.setStyle(resolvedTheme === 'dark' ? 'light' : 'dark')
+  }, [p.bg, resolvedTheme])
 
   useEffect(() => {
     void useApp.getState().hydrate()
@@ -247,6 +275,8 @@ export default function RootLayout() {
     if (!hydrated) return
     void SplashScreen.hideAsync().catch(() => undefined)
     void useApp.getState().ingestDeviceData()
+    // Android 13+ 默认不授予通知权限，不主动申请的话晨报、提醒只会静默失败
+    void ensureNotificationPermission()
   }, [hydrated])
 
   useEffect(() => {

@@ -8,12 +8,13 @@ import { getApiBase } from './api'
  */
 
 export interface StreamMessage {
-  type: 'message'
+  type: 'message' | 'backlog'
   title: string
   body: string
   messageId?: string
   dutyId?: string
   kind?: string
+  count?: number
 }
 
 type Handler = (message: StreamMessage) => void
@@ -59,7 +60,7 @@ function connect(): void {
     if (!raw || raw === 'pong') return
     try {
       const data = JSON.parse(raw) as StreamMessage
-      if (data?.type === 'message') handler?.(data)
+      if (data?.type === 'message' || data?.type === 'backlog') handler?.(data)
     } catch {
       // 忽略非法消息
     }

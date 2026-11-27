@@ -20,6 +20,8 @@ local.properties
 .env
 .env.*
 !.env.example
+# AGC 下发的推送配置，含 client_secret / api_key，不能入库
+/native/agconnect-services.json
 
 # 日志与系统文件
 *.log

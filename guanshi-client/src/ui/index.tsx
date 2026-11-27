@@ -220,7 +220,13 @@ export function Button({
       ]}
     >
       {loading ? <ActivityIndicator size="small" color={fg} /> : null}
-      <Text style={{ fontSize: size === 'sm' ? 12 : 14, fontWeight: '600', color: fg }}>{children}</Text>
+      {React.Children.map(children, (child) =>
+        typeof child === 'string' || typeof child === 'number' ? (
+          <Text style={{ fontSize: size === 'sm' ? 12 : 14, fontWeight: '600', color: fg }}>{child}</Text>
+        ) : (
+          child
+        ),
+      )}
     </Pressable>
   )
 }

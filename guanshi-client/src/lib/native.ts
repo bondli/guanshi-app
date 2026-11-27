@@ -104,6 +104,26 @@ export function isShareSupported(): boolean {
   return mod<ShareNative>('GuanshiShare') != null
 }
 
+/* ---------------- 华为推送 token ---------------- */
+
+interface PushNative {
+  getToken(): Promise<string>
+  deleteToken(): Promise<boolean>
+}
+
+/** 拿不到（模拟器没 HMS Core、没放 agconnect-services.json）时返回 null，静默降级到前台通道 */
+export async function getHuaweiPushToken(): Promise<string | null> {
+  const module = mod<PushNative>('GuanshiPush')
+  if (!module) return null
+  try {
+    const token = await module.getToken()
+    return token || null
+  } catch (error) {
+    console.warn('[push] 获取华为 token 失败', error)
+    return null
+  }
+}
+
 /* ---------------- 模型 Key 加密 ---------------- */
 
 /** 用服务端公钥做 RSA-OAEP(SHA-256) 加密，网络上只出现密文 */
@@ -357,6 +377,9 @@ export function onNotificationPosted(callback: (item: NotifyItem) => void): () =
 }
 
 /* ---------------- 推送通知权限 ---------------- */
+
+/** 除晨报外都走这个渠道；渠道本身带声音，是否响铃由前台 handler 决定 */
+export const REMINDER_CHANNEL = 'guanshi-reminders'
 
 export async function ensureNotificationPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return false

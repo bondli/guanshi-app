@@ -41,6 +41,12 @@
           "color": "#c9522a"
         }
       ],
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false
+        }
+      ],
       "./plugins/withGuanshiNative.js"
     ],
     "extra": {

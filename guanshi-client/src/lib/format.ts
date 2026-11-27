@@ -33,6 +33,19 @@ export function shortDate(ts: number): string {
   return `${d.getMonth() + 1} 月 ${d.getDate()} 日`
 }
 
+/** 助手消息时间：当天只显示时间，昨天加「昨天」，更早显示日期 */
+export function chatStamp(ts: number): string {
+  const d = new Date(ts)
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  const day = localDateOf(ts)
+  if (day === todayISO()) return time
+  if (day === addDaysISO(-1)) return `昨天 ${time}`
+  if (d.getFullYear() === new Date().getFullYear()) {
+    return `${d.getMonth() + 1} 月 ${d.getDate()} 日 ${time}`
+  }
+  return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${time}`
+}
+
 export function timeAgo(ts: number): string {
   const diff = Date.now() - ts
   if (diff < 60_000) return '刚刚'

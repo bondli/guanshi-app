@@ -3,7 +3,7 @@ import cors from 'cors'
 import { config } from './config'
 import { closeDb } from './db'
 import router from './routes'
-import { startScheduler, stopScheduler } from './services'
+import { flushPendingToUser, startScheduler, stopScheduler } from './services'
 import { attachStream, stopStream } from './stream'
 
 const app = express()
@@ -29,7 +29,7 @@ const server = app.listen(config.port, config.host, () => {
   console.log(`[guanshi] 配置文件 ${config.configPath}`)
   console.log(`[guanshi] 数据目录 ${config.dataDir}`)
   console.log('[guanshi] 模型 Key 由客户端随请求上送（RSA-OAEP 加密），服务端不保存')
-  attachStream(server)
+  attachStream(server, flushPendingToUser)
   startScheduler()
 })
 

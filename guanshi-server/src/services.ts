@@ -12,12 +12,17 @@ import {
   getUser,
   listDuties,
   listPushTokens,
+  markOutboxDelivered,
   markOutboxSent,
   pendingOutbox,
+  pendingOutboxForUser,
+  removePushToken,
   updateDuty,
 } from './repos'
 import type { Duty } from './types'
+import { sendHuaweiPush } from './huawei'
 import { ensureFestivalDuties } from './holidays'
+import { pushToUser } from './stream'
 import { addDays, atLocal, localDate, localTime, now } from './util'
 
 /* ---------------- 推送分发 ---------------- */
@@ -29,28 +34,64 @@ function inQuietHours(quietStart: string, quietEnd: string, time = localTime()):
 }
 
 /**
- * 厂商推送通道，暂未接入（个人自用、量小，先靠前台 WebSocket + 本地通知，见 stream.ts）。
- * 以后要「杀 App 也能提醒」时在这里补，按 push_tokens.platform 分流：
- * - getui：POST https://restapi.getui.com/v2/{appId}/push/single/cid
- *   transmission_content 带 { messageId }，click_type 设 intent，才能点回 /chat
- * - fcm：  POST https://fcm.googleapis.com/v1/projects/{project}/messages:send（需设备有 GMS）
- * 前提：客户端先拿到 token 并调 POST /api/push-token 上报，该接口和 push_tokens 表已就绪。
+ * 厂商推送：目前只接了华为 Push Kit（自用设备是华为手机），实现见 huawei.ts。
+ * 之后要加小米/OPPO/vivo 时，按 push_tokens.platform 在这里分流即可；
+ * 前提仍然是客户端先拿到 token 并调 POST /api/push-token 上报。
  */
-async function deliver(userId: string, title: string, body: string, data: Record<string, unknown>): Promise<void> {
+async function deliver(userId: string, title: string, body: string, data: Record<string, unknown>): Promise<boolean> {
   const tokens = listPushTokens(userId)
-  console.log(`[push] → ${userId} tokens=${tokens.length}（厂商通道未接）| ${title} | ${body.replace(/\n/g, ' / ')}`)
+  // 没有任何厂商 token 就直接失败，避免离线用户每条消息每 30s 刷一行日志
+  if (!tokens.length) return false
+  const messageId = typeof data.messageId === 'string' ? data.messageId : undefined
+  let delivered = false
   for (const token of tokens) {
-    // TODO: 按 platform 调对应厂商 SDK，payload 里带 messageId 供深链定位
-    void token
+    const result = await sendHuaweiPush(token, { title, body, messageId })
+    if (result.ok) {
+      delivered = true
+      continue
+    }
+    if (result.invalidToken) {
+      removePushToken(token)
+      console.warn(`[push] ${userId} 的华为 token 已失效，已删除`)
+      continue
+    }
+    console.warn(`[push] ${userId} 下发失败 ${result.code ?? ''} ${result.message ?? ''}`.trim())
   }
-  void data
+  if (delivered) console.log(`[push] → ${userId} ${title}`)
+  return delivered
 }
 
 export async function dispatchOutbox(): Promise<void> {
   const rows = pendingOutbox()
   for (const row of rows) {
-    await deliver(row.user_id, row.title, row.body, JSON.parse(row.data || '{}'))
-    markOutboxSent(row.id)
+    // 超过 24 小时还没送达就放弃，避免离线用户积压无限增长
+    if (now() - Number(row.created_at) > 24 * 3600_000) {
+      markOutboxSent(row.id)
+      continue
+    }
+    const ok = await deliver(row.user_id, row.title, row.body, JSON.parse(row.data || '{}'))
+    if (ok) markOutboxSent(row.id)
+  }
+}
+
+/** 客户端 WebSocket 连上时调用：把离线期间积压的提醒一次性补发 */
+export function flushPendingToUser(userId: string): void {
+  const rows = pendingOutboxForUser(userId)
+  if (!rows.length) return
+  const latest = rows[rows.length - 1]
+  const data = JSON.parse(latest.data || '{}') as Record<string, unknown>
+  const count = rows.length
+  const delivered = pushToUser(userId, {
+    type: 'backlog',
+    count,
+    title: count > 1 ? `你有 ${count} 条提醒` : latest.title,
+    body: count > 1 ? `${latest.title} 等 ${count} 条，点开助手查看` : latest.body,
+    messageId: typeof data.messageId === 'string' ? data.messageId : undefined,
+    kind: typeof data.type === 'string' ? data.type : undefined,
+  })
+  if (delivered) {
+    markOutboxDelivered(rows.map((row) => row.id))
+    console.log(`[stream] ${userId} 补发 ${count} 条积压提醒`)
   }
 }
 

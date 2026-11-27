@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react-native'
 import type { Duty, Message } from '@/src/lib/types'
+import { chatStamp } from '@/src/lib/format'
 import { usePalette } from '@/src/theme/tokens'
 import { Badge, Button } from '@/src/ui'
 
@@ -56,7 +57,10 @@ export function MessageBubble({
 
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={{ fontSize: 10.5, color: p.muted, marginBottom: 5, marginLeft: 2 }}>管事</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 5, marginLeft: 2 }}>
+        <Text style={{ fontSize: 10.5, color: p.muted }}>管事</Text>
+        <Text style={{ fontSize: 9.5, color: p.muted2 }}>{chatStamp(message.createdAt)}</Text>
+      </View>
       <View
         style={{
           alignSelf: 'flex-start',

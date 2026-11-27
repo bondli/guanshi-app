@@ -93,10 +93,14 @@ export const darkPalette: Palette = {
   overlay: 'rgba(0,0,0,0.55)',
 }
 
-export function usePalette(): Palette {
+export function useResolvedTheme(): 'light' | 'dark' {
   const mode = useApp((s) => s.settings.theme)
   const system = useColorScheme()
-  const resolved = mode === 'system' ? (system === 'dark' ? 'dark' : 'light') : mode
+  return mode === 'system' ? (system === 'dark' ? 'dark' : 'light') : mode
+}
+
+export function usePalette(): Palette {
+  const resolved = useResolvedTheme()
   return resolved === 'dark' ? darkPalette : lightPalette
 }
 

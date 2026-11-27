@@ -7,6 +7,8 @@ const {
   withGradleProperties,
   withMainActivity,
   withMainApplication,
+  withProjectBuildGradle,
+  withSettingsGradle,
 } = require('expo/config-plugins')
 
 const PERMISSIONS = [
@@ -106,6 +108,20 @@ function patchManifest(config) {
 
     const application = manifest.application && manifest.application[0]
     if (!application) return cfg
+
+    // Android 11+ 包可见性：不声明 queries 时 getLaunchIntentForPackage 一律返回 null，
+    // 表现为「明明装了抖音却提示没安装」
+    const visiblePackages = ['com.ss.android.ugc.aweme', 'com.xingin.xhs', 'com.tencent.mm']
+    manifest.queries = manifest.queries || []
+    const declared = new Set(
+      manifest.queries
+        .flatMap((item) => (item.package || []).map((pkg) => pkg.$ && pkg.$['android:name']))
+        .filter(Boolean),
+    )
+    const missing = visiblePackages.filter((name) => !declared.has(name))
+    if (missing.length) {
+      manifest.queries.push({ package: missing.map((name) => ({ $: { 'android:name': name } })) })
+    }
     // 本地调试走 http，Android 9+ 默认禁止明文流量，这里放开
     application.$ = application.$ || {}
     application.$['android:usesCleartextTraffic'] = 'true'
@@ -175,6 +191,119 @@ function patchManifest(config) {
 
     return cfg
   })
+}
+
+/* ---------------- 华为 Push Kit ---------------- */
+
+const HUAWEI_MAVEN = 'https://developer.huawei.com/repo/'
+const AGCP_VERSION = '1.9.6.301'
+const HMS_PUSH_VERSION = '6.13.0.301'
+
+function agconnectSource(projectRoot) {
+  return path.join(projectRoot, 'native', 'agconnect-services.json')
+}
+
+/** 从 React Native 的版本目录里读 AGP 版本，agcp 需要它来判断支持范围 */
+function readAgpVersion(projectRoot) {
+  try {
+    const toml = fs.readFileSync(
+      path.join(projectRoot, 'node_modules', 'react-native', 'gradle', 'libs.versions.toml'),
+      'utf8',
+    )
+    const match = toml.match(/^agp\s*=\s*"([^"]+)"/m)
+    if (match) return match[1]
+  } catch {
+    // 读不到就用兜底版本
+  }
+  return '9.2.1'
+}
+
+/**
+ * agcp 会去读名为 libs 的版本目录里的 android-application 插件版本；
+ * Expo 只注册了 expoLabs，这里补一个最小目录，否则 apply plugin 直接失败。
+ */
+function patchSettingsGradle(config) {
+  return withSettingsGradle(config, (cfg) => {
+    let source = cfg.modResults.contents
+    if (source.includes('agcp-libs-catalog')) return cfg
+    source += `
+// agcp-libs-catalog: 华为 agcp 要求存在名为 libs 的版本目录
+dependencyResolutionManagement {
+  versionCatalogs {
+    create("libs") {
+      plugin("android-application", "com.android.application").version("${readAgpVersion(cfg.modRequest.projectRoot)}")
+    }
+  }
+}
+`
+    cfg.modResults.contents = source
+    return cfg
+  })
+}
+
+function patchRootBuildGradle(config) {
+  return withProjectBuildGradle(config, (cfg) => {
+    let source = cfg.modResults.contents
+    if (!source.includes(HUAWEI_MAVEN)) {
+      source = source.replace(
+        /(buildscript\s*\{\s*repositories\s*\{)/,
+        `$1\n    maven { url '${HUAWEI_MAVEN}' }`,
+      )
+      source = source.replace(
+        /(allprojects\s*\{\s*repositories\s*\{)/,
+        `$1\n    maven { url '${HUAWEI_MAVEN}' }`,
+      )
+    }
+    if (!source.includes('com.huawei.agconnect:agcp')) {
+      source = source.replace(
+        /(buildscript\s*\{[\s\S]*?dependencies\s*\{)/,
+        `$1\n    classpath 'com.huawei.agconnect:agcp:${AGCP_VERSION}'`,
+      )
+    }
+    cfg.modResults.contents = source
+    return cfg
+  })
+}
+
+function patchHuaweiPush(config) {
+  return withAppBuildGradle(config, (cfg) => {
+    let source = cfg.modResults.contents
+    if (!source.includes('com.huawei.hms:push')) {
+      source = source.replace(
+        /dependencies\s*\{/,
+        (match) => `${match}\n    implementation("com.huawei.hms:push:${HMS_PUSH_VERSION}")`,
+      )
+    }
+    // agcp 插件必须在 agconnect-services.json 存在时才应用，否则构建直接失败
+    if (
+      fs.existsSync(agconnectSource(cfg.modRequest.projectRoot)) &&
+      !source.includes("com.huawei.agconnect'")
+    ) {
+      source = source.replace(
+        /apply plugin: "com\.android\.application"/,
+        (match) => `${match}\napply plugin: 'com.huawei.agconnect'`,
+      )
+    }
+    cfg.modResults.contents = source
+    return cfg
+  })
+}
+
+function copyAgconnectConfig(config) {
+  return withDangerousMod(config, [
+    'android',
+    async (cfg) => {
+      const from = agconnectSource(cfg.modRequest.projectRoot)
+      if (!fs.existsSync(from)) {
+        console.warn(
+          '[withGuanshiNative] 未找到 native/agconnect-services.json，华为推送不会生效（前台通道不受影响）',
+        )
+        return cfg
+      }
+      fs.copyFileSync(from, path.join(cfg.modRequest.platformProjectRoot, 'app', 'agconnect-services.json'))
+      return cfg
+    },
+  ])
 }
 
 function patchGradle(config) {
@@ -250,5 +379,9 @@ module.exports = function withGuanshiNative(config) {
   config = patchGradle(config)
   config = patchGradleProperties(config)
   config = patchAbiSplits(config)
+  config = patchRootBuildGradle(config)
+  config = patchSettingsGradle(config)
+  config = patchHuaweiPush(config)
+  config = copyAgconnectConfig(config)
   return config
 }

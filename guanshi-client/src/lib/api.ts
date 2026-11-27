@@ -178,6 +178,12 @@ export const api = {
   saveSettings: (patch: Record<string, unknown>) =>
     request<{ user: User }>('/me/settings', { method: 'PATCH', body: JSON.stringify(patch) }),
 
+  registerPushToken: (token: string, platform = 'huawei') =>
+    request<{ ok: boolean }>('/push-token', {
+      method: 'POST',
+      body: JSON.stringify({ token, platform }),
+    }),
+
   testPush: (kind: 'briefing' | 'review' = 'briefing') =>
     request<{ ok: boolean; title: string; messageId: string }>('/push/test', {
       method: 'POST',

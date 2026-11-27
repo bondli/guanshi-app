@@ -1,12 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as SecureStore from 'expo-secure-store'
 import * as Notifications from 'expo-notifications'
+import { Platform } from 'react-native'
 import { create } from 'zustand'
 import { ApiError, DEFAULT_API_BASE, api, getApiBase, setApiBase, setToken } from './api'
 import { addDaysISO, firstLine, localDateOf, todayISO } from './format'
 import {
+  REMINDER_CHANNEL,
   clearPendingShare,
   drainNotifications,
+  getHuaweiPushToken,
   inferSource,
   markSmsSeen,
   pickImage,
@@ -207,6 +210,23 @@ function extractUrl(text: string): string {
   return match?.[0] || ''
 }
 
+/* ---------------- 厂商推送（华为 Push Kit） ---------------- */
+
+let reportedPushToken = ''
+
+/** 上报华为推送 token；模拟器没有 HMS Core 时拿不到，静默跳过 */
+async function reportPushToken(): Promise<void> {
+  const token = await getHuaweiPushToken()
+  if (!token || token === reportedPushToken) return
+  try {
+    await api.registerPushToken(token)
+    reportedPushToken = token
+    console.log('[push] 华为 token 已上报')
+  } catch (error) {
+    console.warn('[push] token 上报失败', error)
+  }
+}
+
 /* ---------------- 前台推送（WebSocket） ---------------- */
 
 const notifiedIds = new Set<string>()
@@ -217,17 +237,22 @@ async function onStreamMessage(message: StreamMessage): Promise<void> {
     notifiedIds.add(message.messageId)
     if (notifiedIds.size > 200) notifiedIds.clear()
   }
+  if (message.type === 'backlog') console.log(`[stream] 收到 ${message.count || 1} 条积压提醒`)
+  const loud = message.kind === 'briefing'
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: message.title,
         body: message.body.length > 120 ? `${message.body.slice(0, 120)}…` : message.body,
-        data: { messageId: message.messageId },
+        data: { messageId: message.messageId, kind: message.kind },
+        ...(loud ? { sound: 'default' as const } : {}),
       },
-      trigger: null,
+      // 用自建渠道（带声音），是否响铃再由 handler 按 kind 决定
+      trigger: Platform.OS === 'android' ? { channelId: REMINDER_CHANNEL } : null,
     })
-  } catch {
+  } catch (error) {
     // 没有通知权限时静默，数据仍会刷新
+    console.warn('[stream] 本地通知失败', error)
   }
   await useApp.getState().refresh()
 }
@@ -330,6 +355,7 @@ export const useApp = create<AppState>()((set, get) => ({
         unread: data.unread,
       })
       ensureStream(token, (message) => void onStreamMessage(message))
+      void reportPushToken()
       void get().ingestDeviceData()
     } catch {
       setToken(null)

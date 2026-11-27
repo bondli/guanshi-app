@@ -210,7 +210,7 @@ export default function MeScreen() {
           <Row
             icon={<Mic size={16} color={p.muted} />}
             title="语音听写"
-            desc="音频只到讯飞，不经过我们"
+            desc="音频只到讯飞，不存服务端"
             last
             right={<><Text style={{ fontSize: 11, color: p.muted }}>{settings.iflytek.appId ? '已配置' : '未配置'}</Text><ChevronRight size={15} color={p.muted2} /></>}
             onPress={() => go('voice')}

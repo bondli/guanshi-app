@@ -6,6 +6,16 @@ import path from 'node:path'
 const configDir = process.env.GUANSHI_CONFIG_DIR || path.join(os.homedir(), '.guanshi-app')
 const configPath = path.join(configDir, 'config.json')
 
+export interface HuaweiPushConfig {
+  /** AGC 里的 Client ID（和 APP ID 相同） */
+  clientId: string
+  clientSecret: string
+  /** 自分类权益通过前先用测试消息，可豁免每日单设备频控 */
+  testMessage: boolean
+  /** 自分类权益通过后填 WORK（工作事项提醒）；未通过时填了也会被归为资讯营销 */
+  category: string
+}
+
 export interface FileConfig {
   port: number
   host: string
@@ -16,6 +26,8 @@ export interface FileConfig {
   publicBaseUrl: string
   /** 单个用户每分钟最多调用多少次模型 */
   llmRateLimitPerMinute: number
+  /** 华为推送，来自 AGC「项目设置 > 常规」 */
+  huawei: HuaweiPushConfig
 }
 
 const defaults: FileConfig = {
@@ -25,6 +37,12 @@ const defaults: FileConfig = {
   dataDir: path.join(configDir, 'data'),
   publicBaseUrl: 'http://localhost:7777',
   llmRateLimitPerMinute: 20,
+  huawei: {
+    clientId: '',
+    clientSecret: '',
+    testMessage: true,
+    category: 'WORK',
+  },
 }
 
 function readFile(): Partial<FileConfig> {
@@ -51,7 +69,12 @@ function ensureFile(): void {
 ensureFile()
 
 const file = readFile()
-const merged: FileConfig = { ...defaults, ...file }
+const merged: FileConfig = {
+  ...defaults,
+  ...file,
+  // 逐项合并，避免配置文件里只写了一部分 huawei 字段时把默认值整块覆盖
+  huawei: { ...defaults.huawei, ...(file.huawei ?? {}) },
+}
 
 fs.mkdirSync(merged.dataDir, { recursive: true })
 

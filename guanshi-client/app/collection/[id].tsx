@@ -10,10 +10,10 @@ import { usePalette } from '@/src/theme/tokens'
 import { Badge, Button, Card, Empty, Screen } from '@/src/ui'
 
 /** 剪贴板收藏：复制原内容后打开对应 App，让 App 自己识别剪贴板里的链接 */
-const APP_TARGETS: Record<string, { package: string; name: string }> = {
-  小红书: { package: 'com.xingin.xhs', name: '小红书' },
-  抖音: { package: 'com.ss.android.ugc.aweme', name: '抖音' },
-  微信: { package: 'com.tencent.mm', name: '微信' },
+const APP_TARGETS: Record<string, { package: string; scheme: string; name: string }> = {
+  小红书: { package: 'com.xingin.xhs', scheme: 'xhsdiscover://', name: '小红书' },
+  抖音: { package: 'com.ss.android.ugc.aweme', scheme: 'snssdk1128://', name: '抖音' },
+  微信: { package: 'com.tencent.mm', scheme: 'weixin://', name: '微信' },
 }
 
 export default function CollectionDetailScreen() {
@@ -54,7 +54,11 @@ export default function CollectionDetailScreen() {
       openUrl()
       return
     }
-    const opened = await openAppByPackage(target.package)
+    // 先按包名拉起；部分机型对包可见性有限制，再用 scheme 兜底
+    let opened = await openAppByPackage(target.package)
+    if (!opened) {
+      opened = await Linking.openURL(target.scheme).then(() => true).catch(() => false)
+    }
     showToast(opened ? `已复制原文，去${target.name}粘贴打开` : `已复制原文，但没安装${target.name}`)
   }
 
@@ -143,7 +147,7 @@ export default function CollectionDetailScreen() {
         </Button>
         <Button variant="ghost" style={{ marginTop: 10 }} onPress={onDelete}>
           <Trash2 size={14} color={p.danger} />
-          <Text style={{ color: p.danger }}>删除收藏</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: p.danger }}>删除收藏</Text>
         </Button>
       </ScrollView>
     </Screen>
